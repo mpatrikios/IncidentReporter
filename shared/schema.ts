@@ -1,15 +1,20 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// User storage table with authentication fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  email: text("email").notNull(),
-  fullName: text("full_name").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  fullName: text("full_name"),
   title: text("title"), // P.E., Engineer, etc.
   isEngineer: boolean("is_engineer").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const reports = pgTable("reports", {

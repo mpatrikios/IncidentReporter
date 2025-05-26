@@ -1,10 +1,12 @@
 import { users, reports, formSteps, type User, type InsertUser, type Report, type InsertReport, type FormStep, type InsertFormStep } from "@shared/schema";
 
 export interface IStorage {
-  // Users
+  // Users - Authentication
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  validateUser(username: string, password: string): Promise<User | null>;
   
   // Reports
   getReport(id: number): Promise<Report | undefined>;
@@ -37,14 +39,27 @@ export class MemStorage implements IStorage {
     this.currentReportId = 1;
     this.currentFormStepId = 1;
 
-    // Create a sample engineer user
+    // Create sample users
     this.createUser({
       username: "john.doe",
       password: "password123",
       email: "john.doe@example.com",
+      firstName: "John",
+      lastName: "Doe",
       fullName: "John Doe",
       title: "P.E.",
       isEngineer: true,
+    });
+
+    this.createUser({
+      username: "jane.smith",
+      password: "password123",
+      email: "jane.smith@example.com",
+      firstName: "Jane",
+      lastName: "Smith",
+      fullName: "Jane Smith",
+      title: "Engineer",
+      isEngineer: false,
     });
   }
 
@@ -58,9 +73,32 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
+    const now = new Date();
+    const user: User = { 
+      ...insertUser, 
+      id,
+      firstName: insertUser.firstName || null,
+      lastName: insertUser.lastName || null,
+      fullName: insertUser.fullName || null,
+      title: insertUser.title || null,
+      isEngineer: insertUser.isEngineer || false,
+      createdAt: now,
+      updatedAt: now,
+    };
     this.users.set(id, user);
     return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
+  async validateUser(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    if (user && user.password === password) {
+      return user;
+    }
+    return null;
   }
 
   async getReport(id: number): Promise<Report | undefined> {

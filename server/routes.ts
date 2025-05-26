@@ -13,15 +13,67 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Get current user (mock session)
-  app.get("/api/user", async (req, res) => {
-    // For demo purposes, return the first user
-    const user = await storage.getUser(1);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
+      const user = await storage.validateUser(username, password);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Set user session (simplified - in production use proper session management)
+      req.session = req.session || {};
+      req.session.userId = user.id;
+      req.session.user = user;
+      
+      // Don't send password in response
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword, message: "Login successful" });
+    } catch (error) {
+      res.status(500).json({ message: "Login failed" });
     }
-    res.json(user);
   });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    req.session = null;
+    res.json({ message: "Logout successful" });
+  });
+
+  // Get current user
+  app.get("/api/auth/user", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't send password in response
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  // Middleware to check authentication
+  const requireAuth = (req: any, res: any, next: any) => {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    next();
+  };
 
   // Get user reports
   app.get("/api/reports", async (req, res) => {
