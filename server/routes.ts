@@ -38,14 +38,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new report
   app.post("/api/reports", async (req, res) => {
     try {
-      const reportData = insertReportSchema.parse(req.body);
+      // Generate project ID and set default values before validation
       const projectId = `CE-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
       
-      const report = await storage.createReport({
-        ...reportData,
+      const reportData = insertReportSchema.parse({
+        ...req.body,
         projectId,
         createdBy: 1, // Mock user ID
       });
+      
+      const report = await storage.createReport(reportData);
 
       // Initialize form steps
       const stepNames = [

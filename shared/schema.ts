@@ -102,6 +102,10 @@ export const insertReportSchema = createInsertSchema(reports).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).partial({
+  projectId: true,
+  createdBy: true,
+  status: true,
 });
 
 export const insertFormStepSchema = createInsertSchema(formSteps).omit({
