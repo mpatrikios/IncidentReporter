@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 248 250 252; /* #f8fafc */
+  --foreground: 15 23 42; /* #0f172a */
+  --muted: 241 245 249; /* #f1f5f9 */
+  --muted-foreground: 100 116 139; /* #64748b */
+  --popover: 255 255 255; /* #ffffff */
+  --popover-foreground: 15 23 42; /* #0f172a */
+  --card: 255 255 255; /* #ffffff */
+  --card-foreground: 15 23 42; /* #0f172a */
+  --border: 226 232 240; /* #e2e8f0 */
+  --input: 226 232 240; /* #e2e8f0 */
+  --primary: 37 99 235; /* #2563eb */
+  --primary-foreground: 255 255 255; /* #ffffff */
+  --secondary: 241 245 249; /* #f1f5f9 */
+  --secondary-foreground: 15 23 42; /* #0f172a */
+  --accent: 241 245 249; /* #f1f5f9 */
+  --accent-foreground: 15 23 42; /* #0f172a */
+  --destructive: 239 68 68; /* #ef4444 */
+  --destructive-foreground: 255 255 255; /* #ffffff */
+  --ring: 37 99 235; /* #2563eb */
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 15 23 42; /* #0f172a */
+  --foreground: 248 250 252; /* #f8fafc */
+  --muted: 30 41 59; /* #1e293b */
+  --muted-foreground: 148 163 184; /* #94a3b8 */
+  --popover: 15 23 42; /* #0f172a */
+  --popover-foreground: 248 250 252; /* #f8fafc */
+  --card: 15 23 42; /* #0f172a */
+  --card-foreground: 248 250 252; /* #f8fafc */
+  --border: 51 65 85; /* #334155 */
+  --input: 51 65 85; /* #334155 */
+  --primary: 37 99 235; /* #2563eb */
+  --primary-foreground: 255 255 255; /* #ffffff */
+  --secondary: 30 41 59; /* #1e293b */
+  --secondary-foreground: 248 250 252; /* #f8fafc */
+  --accent: 30 41 59; /* #1e293b */
+  --accent-foreground: 248 250 252; /* #f8fafc */
+  --destructive: 239 68 68; /* #ef4444 */
+  --destructive-foreground: 255 255 255; /* #ffffff */
+  --ring: 148 163 184; /* #94a3b8 */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0; 
+    transform: translateX(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+  }
+  to { 
+    opacity: 1; 
+  }
+}
+
+/* Professional engineering color scheme */
+.bg-primary-600 {
+  background-color: hsl(217 91% 60%); /* #3b82f6 */
+}
+
+.text-primary-600 {
+  color: hsl(217 91% 60%); /* #3b82f6 */
+}
+
+.border-primary-600 {
+  border-color: hsl(217 91% 60%); /* #3b82f6 */
+}
+
+.bg-primary-50 {
+  background-color: hsl(214 100% 97%); /* #eff6ff */
+}
+
+.text-emerald-600 {
+  color: hsl(158 64% 52%); /* #059669 */
+}
+
+.bg-emerald-50 {
+  background-color: hsl(151 81% 96%); /* #ecfdf5 */
+}
+
+.border-emerald-200 {
+  border-color: hsl(151 75% 87%); /* #a7f3d0 */
+}
+
+.bg-emerald-600 {
+  background-color: hsl(158 64% 52%); /* #059669 */
+}
+
+/* Font Awesome icons support */
+.fas, .far, .fab {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands";
+  font-weight: 900;
+}
+
+.far {
+  font-weight: 400;
+}
