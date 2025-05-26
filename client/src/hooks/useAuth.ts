@@ -33,13 +33,20 @@ export function useLogin() {
   
   return useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
-      return apiRequest("/api/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify(credentials),
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify(credentials),
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Login failed");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -52,9 +59,15 @@ export function useLogout() {
   
   return useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/auth/logout", {
+      const response = await fetch("/api/auth/logout", {
         method: "POST",
       });
+      
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
