@@ -41,11 +41,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate project ID and set default values before validation
       const projectId = `CE-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
       
-      const reportData = insertReportSchema.parse({
-        ...req.body,
+      console.log("Request body:", req.body);
+      
+      const dataToValidate = {
+        title: req.body.title || "New Civil Engineering Report",
+        reportType: req.body.reportType || "structural", 
+        status: req.body.status || "draft",
         projectId,
         createdBy: 1, // Mock user ID
-      });
+        assignedEngineer: req.body.assignedEngineer || null,
+        formData: req.body.formData || null,
+        googleDocId: req.body.googleDocId || null,
+        pdfUrl: req.body.pdfUrl || null,
+      };
+      
+      console.log("Data to validate:", dataToValidate);
+      
+      const reportData = insertReportSchema.parse(dataToValidate);
       
       const report = await storage.createReport(reportData);
 
