@@ -98,14 +98,17 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 });
 
-export const insertReportSchema = createInsertSchema(reports).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).partial({
-  projectId: true,
-  createdBy: true,
-  status: true,
+// Create a more flexible schema for report creation
+export const insertReportSchema = z.object({
+  title: z.string().optional(),
+  reportType: z.string().optional(), 
+  status: z.string().optional(),
+  projectId: z.string().optional(),
+  createdBy: z.number().optional(),
+  assignedEngineer: z.number().nullable().optional(),
+  formData: z.any().optional(),
+  googleDocId: z.string().nullable().optional(),
+  pdfUrl: z.string().nullable().optional(),
 });
 
 export const insertFormStepSchema = createInsertSchema(formSteps).omit({
