@@ -98,10 +98,7 @@ export default function ReportWizard() {
   };
 
   const goToStep = (step: number) => {
-    const maxAccessibleStep = Math.max(currentStep, Math.max(...completedSteps, 0) + 1);
-    if (step <= maxAccessibleStep) {
-      setCurrentStep(step);
-    }
+    setCurrentStep(step);
   };
 
   const currentStepConfig = FORM_STEPS.find(step => step.number === currentStep);

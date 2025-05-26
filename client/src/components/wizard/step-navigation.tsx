@@ -40,7 +40,7 @@ export function StepNavigation({
         {FORM_STEPS.map((step) => {
           const isCompleted = completedSteps.includes(step.number);
           const isCurrent = currentStep === step.number;
-          const isAccessible = step.number <= Math.max(currentStep, Math.max(...completedSteps, 0) + 1);
+          const isAccessible = true; // Allow access to all steps
 
           return (
             <button
