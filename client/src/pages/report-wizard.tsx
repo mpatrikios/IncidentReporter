@@ -87,7 +87,8 @@ export default function ReportWizard() {
 
   const handleStepSubmit = async (stepNumber: number, data: any, goToNext: boolean = true) => {
     try {
-      await saveFormData(stepNumber, data, true);
+      // Save as partial data when navigating between steps, full validation only on final submit
+      await saveFormData(stepNumber, data, false);
       
       if (goToNext && stepNumber < FORM_STEPS.length) {
         setCurrentStep(stepNumber + 1);

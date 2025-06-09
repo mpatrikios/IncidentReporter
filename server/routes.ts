@@ -189,24 +189,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stepNumber = parseInt(req.params.stepNumber);
       const { data, isCompleted } = req.body;
 
-      // Validate step data based on step number
+      // For auto-save (when isCompleted is false), use partial validation
+      // For manual save (when isCompleted is true), use strict validation
       let validatedData = data;
-      switch (stepNumber) {
-        case 1:
-          validatedData = projectInformationSchema.parse(data);
-          break;
-        case 2:
-          validatedData = siteAnalysisSchema.parse(data);
-          break;
-        case 3:
-          validatedData = designSpecificationsSchema.parse(data);
-          break;
-        case 4:
-          validatedData = calculationsSchema.parse(data);
-          break;
-        case 5:
-          validatedData = reviewAttachmentsSchema.parse(data);
-          break;
+      
+      if (isCompleted) {
+        // Strict validation for completed steps
+        switch (stepNumber) {
+          case 1:
+            validatedData = projectInformationSchema.parse(data);
+            break;
+          case 2:
+            validatedData = siteAnalysisSchema.parse(data);
+            break;
+          case 3:
+            validatedData = designSpecificationsSchema.parse(data);
+            break;
+          case 4:
+            validatedData = calculationsSchema.parse(data);
+            break;
+          case 5:
+            validatedData = reviewAttachmentsSchema.parse(data);
+            break;
+        }
+      } else {
+        // Lenient validation for auto-save - just use the data as-is
+        // This allows partial/incomplete data to be saved
+        validatedData = data;
       }
 
       const step = await storage.getFormStep(reportId, stepNumber);
