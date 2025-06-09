@@ -32,6 +32,20 @@ export function CalculationsStep({ initialData, onSubmit, onPrevious, reportId }
   // Auto-save form data as user types
   const { isSaving } = useAutoSave(reportId, 4, form.watch());
 
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      form.reset({
+        calculationType: [],
+        loadCalculations: "",
+        structuralAnalysis: "",
+        safetyFactors: undefined,
+        codeCompliance: "",
+        ...initialData,
+      });
+    }
+  }, [initialData, form]);
+
   const calculationTypes = [
     "Load calculations",
     "Structural analysis",
