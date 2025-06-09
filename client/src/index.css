@@ -159,45 +159,15 @@
   }
 }
 
-/* Professional engineering color scheme */
-.bg-primary-600 {
-  background-color: hsl(217 91% 60%); /* #3b82f6 */
+/* Modern navigation styling */
+.nav-shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
-.text-primary-600 {
-  color: hsl(217 91% 60%); /* #3b82f6 */
+.nav-item {
+  transition: all 0.2s ease-in-out;
 }
 
-.border-primary-600 {
-  border-color: hsl(217 91% 60%); /* #3b82f6 */
-}
-
-.bg-primary-50 {
-  background-color: hsl(214 100% 97%); /* #eff6ff */
-}
-
-.text-emerald-600 {
-  color: hsl(158 64% 52%); /* #059669 */
-}
-
-.bg-emerald-50 {
-  background-color: hsl(151 81% 96%); /* #ecfdf5 */
-}
-
-.border-emerald-200 {
-  border-color: hsl(151 75% 87%); /* #a7f3d0 */
-}
-
-.bg-emerald-600 {
-  background-color: hsl(158 64% 52%); /* #059669 */
-}
-
-/* Font Awesome icons support */
-.fas, .far, .fab {
-  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands";
-  font-weight: 900;
-}
-
-.far {
-  font-weight: 400;
+.nav-item:hover {
+  transform: translateY(-1px);
 }

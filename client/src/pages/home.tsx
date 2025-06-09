@@ -21,38 +21,51 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Modern Header */}
-      <div className="glass-effect border-b border-border/50 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Zap className="h-6 w-6 text-primary" />
+      <div className="bg-white border-b-2 border-grey-200 shadow-md sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-100 rounded-xl border-2 border-blue-200">
+                <Zap className="h-7 w-7 text-blue-700" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-blue-700">
+                  Engineering Suite
+                </h1>
+                <div className="text-xs text-grey-600 font-medium">
+                  Civil Engineering Documentation Platform
+                </div>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold gradient-text">
-              Engineering Suite
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-muted/50">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">
-                {user?.fullName || user?.username}
-              </span>
-              {user?.isEngineer && (
-                <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
-                  Engineer
-                </Badge>
-              )}
+            
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200">
+                <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-200">
+                  <User className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-grey-900">
+                    {user?.fullName || user?.username}
+                  </span>
+                  {user?.isEngineer && (
+                    <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs px-2 py-0.5 w-fit">
+                      Licensed Engineer
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                disabled={logout.isPending}
+                className="border-2 border-grey-300 text-grey-700 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              disabled={logout.isPending}
-              className="hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
           </div>
         </div>
       </div>
