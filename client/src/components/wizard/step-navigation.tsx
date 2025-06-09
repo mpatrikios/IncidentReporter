@@ -18,12 +18,12 @@ export function StepNavigation({
   lastSaved 
 }: StepNavigationProps) {
   return (
-    <div className="glass-effect rounded-2xl shadow-xl border-0 p-8 sticky top-24 animate-scale-in">
+    <div className="bg-card border-2 border-border rounded-2xl shadow-lg p-8 sticky top-24 animate-scale-in">
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-2 bg-primary/10 rounded-xl">
+        <div className="p-2 bg-primary/15 rounded-xl border border-primary/20">
           <Clock className="h-5 w-5 text-primary" />
         </div>
-        <h2 className="text-xl font-bold gradient-text">Report Progress</h2>
+        <h2 className="text-xl font-bold text-foreground">Report Progress</h2>
       </div>
       
       {/* Progress Bar */}
