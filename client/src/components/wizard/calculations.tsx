@@ -6,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface CalculationsProps {
   initialData?: Partial<Calculations>;
   onSubmit: (data: Calculations) => void;
   onPrevious: () => void;
+  reportId?: number | null;
 }
 
-export function CalculationsStep({ initialData, onSubmit, onPrevious }: CalculationsProps) {
+export function CalculationsStep({ initialData, onSubmit, onPrevious, reportId }: CalculationsProps) {
   const form = useForm<Calculations>({
     resolver: zodResolver(calculationsSchema),
     defaultValues: {

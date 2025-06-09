@@ -10,14 +10,16 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface DesignSpecificationsProps {
   initialData?: Partial<DesignSpecifications>;
   onSubmit: (data: DesignSpecifications) => void;
   onPrevious: () => void;
+  reportId?: number | null;
 }
 
-export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious }: DesignSpecificationsProps) {
+export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, reportId }: DesignSpecificationsProps) {
   const form = useForm<DesignSpecifications>({
     resolver: zodResolver(designSpecificationsSchema),
     defaultValues: {

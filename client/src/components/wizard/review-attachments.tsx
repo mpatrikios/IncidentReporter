@@ -10,9 +10,10 @@ interface ReviewAttachmentsProps {
   initialData?: Partial<ReviewAttachments>;
   onSubmit: (data: ReviewAttachments) => void;
   onPrevious: () => void;
+  reportId?: number | null;
 }
 
-export function ReviewAttachmentsStep({ initialData, onSubmit, onPrevious }: ReviewAttachmentsProps) {
+export function ReviewAttachmentsStep({ initialData, onSubmit, onPrevious, reportId }: ReviewAttachmentsProps) {
   const form = useForm<ReviewAttachments>({
     resolver: zodResolver(reviewAttachmentsSchema),
     defaultValues: {

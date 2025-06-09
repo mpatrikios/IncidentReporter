@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-export function useFormPersistence(reportId: number | null) {
+export function useFormPersistence(reportId: number | null | undefined) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -12,24 +12,39 @@ export function useFormPersistence(reportId: number | null) {
 
     setIsSaving(true);
     try {
-      await apiRequest("PATCH", `/api/reports/${reportId}/steps/${stepNumber}`, {
-        data,
-        isCompleted
+      const response = await fetch(`/api/reports/${reportId}/steps/${stepNumber}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          data,
+          isCompleted
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to save");
+      }
       
       setLastSaved(new Date());
       queryClient.invalidateQueries({ queryKey: ["/api/reports", reportId, "steps"] });
       
-      toast({
-        title: "Progress saved",
-        description: "Your changes have been automatically saved.",
-      });
+      // Only show toast for manual saves, not auto-saves
+      if (isCompleted) {
+        toast({
+          title: "Progress saved",
+          description: "Your changes have been saved.",
+        });
+      }
     } catch (error) {
-      toast({
-        title: "Save failed",
-        description: "Failed to save your progress. Please try again.",
-        variant: "destructive",
-      });
+      if (isCompleted) {
+        toast({
+          title: "Save failed",
+          description: "Failed to save your progress. Please try again.",
+          variant: "destructive",
+        });
+      }
       console.error("Failed to save form data:", error);
     } finally {
       setIsSaving(false);
