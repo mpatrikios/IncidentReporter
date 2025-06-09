@@ -28,6 +28,9 @@ export function CalculationsStep({ initialData, onSubmit, onPrevious, reportId }
     },
   });
 
+  // Auto-save form data as user types
+  const { isSaving } = useAutoSave(reportId, 4, form.watch());
+
   const calculationTypes = [
     "Load calculations",
     "Structural analysis",

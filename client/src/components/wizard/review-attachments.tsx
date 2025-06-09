@@ -5,6 +5,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, FileText, Image, Calculator, FileImage } from "lucide-react";
+import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface ReviewAttachmentsProps {
   initialData?: Partial<ReviewAttachments>;
@@ -25,6 +26,9 @@ export function ReviewAttachmentsStep({ initialData, onSubmit, onPrevious, repor
       ...initialData,
     },
   });
+
+  // Auto-save form data as user types
+  const { isSaving } = useAutoSave(reportId, 5, form.watch());
 
   const handleFileUpload = (fieldName: keyof ReviewAttachments, event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

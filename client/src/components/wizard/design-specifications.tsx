@@ -38,6 +38,9 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
     },
   });
 
+  // Auto-save form data as user types
+  const { isSaving } = useAutoSave(reportId, 3, form.watch());
+
   const designType = form.watch("designType");
   const material = form.watch("material");
 

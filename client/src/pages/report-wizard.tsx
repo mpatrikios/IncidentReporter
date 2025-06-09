@@ -149,6 +149,7 @@ export default function ReportWizard() {
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(5, data)}
             onPrevious={() => setCurrentStep(4)}
+            reportId={reportId}
           />
         );
       case 6:
