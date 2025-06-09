@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +8,14 @@ import { FileText, Plus, User, LogOut } from "lucide-react";
 export default function Home() {
   const { user } = useAuth();
   const logout = useLogout();
+  const [, setLocation] = useLocation();
 
   const handleLogout = () => {
     logout.mutate();
+  };
+
+  const handleCreateReport = () => {
+    setLocation("/report-wizard");
   };
 
   return (
@@ -54,12 +59,10 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Link href="/report-wizard">
-                <Button className="w-full">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Start Report
-                </Button>
-              </Link>
+              <Button className="w-full" onClick={handleCreateReport}>
+                <FileText className="h-4 w-4 mr-2" />
+                Start Report
+              </Button>
             </CardContent>
           </Card>
 
