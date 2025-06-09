@@ -5,6 +5,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useFormPersistence } from "@/hooks/use-form-persistence";
 import { FORM_STEPS } from "@/lib/types";
+import { Zap, User, Bell, Home } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Step Components
 import { StepNavigation } from "@/components/wizard/step-navigation";
