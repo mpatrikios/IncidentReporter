@@ -210,10 +210,11 @@ export function SiteAnalysisStep({ initialData, onSubmit, onPrevious, reportId }
                               <Checkbox
                                 checked={field.value?.includes(factor)}
                                 onCheckedChange={(checked) => {
+                                  const currentValue: string[] = field.value || [];
                                   return checked
-                                    ? field.onChange([...field.value, factor])
+                                    ? field.onChange([...currentValue, factor])
                                     : field.onChange(
-                                        field.value?.filter(
+                                        currentValue.filter(
                                           (value) => value !== factor
                                         )
                                       )

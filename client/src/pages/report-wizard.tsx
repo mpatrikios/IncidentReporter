@@ -169,33 +169,40 @@ export default function ReportWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen">
+      {/* Modern Header */}
+      <header className="glass-effect border-b border-border/50 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <i className="fas fa-hard-hat text-primary-600 text-2xl mr-3"></i>
-                <span className="text-xl font-bold text-slate-900">CivilReports Pro</span>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-xl">
+                <Zap className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <span className="text-xl font-bold gradient-text">Engineering Suite</span>
+                <div className="text-xs text-muted-foreground">Report Builder</div>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <button className="text-slate-600 hover:text-slate-900 transition-colors">
-                <i className="far fa-bell text-lg"></i>
-              </button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">JD</span>
-                </div>
-                <span className="text-sm font-medium text-slate-700">John Doe, P.E.</span>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation("/")}
+                className="gap-2"
+              >
+                <Home className="h-4 w-4" />
+                Dashboard
+              </Button>
+              <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-muted/50">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">John Doe, P.E.</span>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* Sidebar */}
@@ -211,25 +218,27 @@ export default function ReportWizard() {
 
           {/* Main Content */}
           <main className="lg:col-span-3">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div className="glass-effect border-0 shadow-xl rounded-2xl overflow-hidden animate-fade-in">
               
               {/* Form Header */}
-              <div className="px-8 py-6 border-b border-slate-200">
+              <div className="px-8 py-6 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-2xl font-bold text-slate-900">
+                  <div className="space-y-2">
+                    <h1 className="text-3xl font-bold text-foreground">
                       {currentStepConfig?.title}
                     </h1>
-                    <p className="text-slate-600 mt-1">
+                    <p className="text-muted-foreground text-lg">
                       {currentStepConfig?.description}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm text-slate-500">Project ID</div>
-                    <div className="font-mono text-sm font-semibold text-slate-900">
-                      {report?.projectId}
+                  {report?.projectId && (
+                    <div className="text-right px-4 py-3 rounded-xl bg-muted/50 border border-border/50">
+                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project ID</div>
+                      <div className="font-mono text-sm font-semibold text-foreground mt-1">
+                        {report.projectId}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
