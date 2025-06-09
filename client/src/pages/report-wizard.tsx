@@ -218,32 +218,30 @@ export default function ReportWizard() {
 
           {/* Main Content */}
           <main className="lg:col-span-3">
-            <div className="glass-effect border-0 shadow-xl rounded-2xl overflow-hidden animate-fade-in">
+            <div className="bg-white border-2 border-grey-200 shadow-lg rounded-xl overflow-hidden animate-fade-in">
               
               {/* Form Header */}
-              <div className="px-8 py-6 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
+              <div className="px-8 py-6 border-b-2 border-grey-200 bg-grey-50">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
-                    <h1 className="text-3xl font-bold text-foreground">
+                    <h1 className="text-3xl font-bold text-grey-900">
                       {currentStepConfig?.title}
                     </h1>
-                    <p className="text-muted-foreground text-lg">
+                    <p className="text-grey-700 text-lg">
                       {currentStepConfig?.description}
                     </p>
                   </div>
-                  {report?.projectId && (
-                    <div className="text-right px-4 py-3 rounded-xl bg-muted/50 border border-border/50">
-                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project ID</div>
-                      <div className="font-mono text-sm font-semibold text-foreground mt-1">
-                        {report.projectId}
-                      </div>
+                  <div className="text-right px-4 py-3 rounded-xl bg-blue-50 border-2 border-blue-200">
+                    <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Project ID</div>
+                    <div className="font-mono text-sm font-bold text-blue-800 mt-1">
+                      PRJ-001
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
               {/* Form Content */}
-              <div className="p-8">
+              <div className="p-8 bg-white">
                 {renderCurrentStep()}
               </div>
             </div>
