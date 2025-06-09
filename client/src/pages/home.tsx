@@ -3,7 +3,8 @@ import { useAuth, useLogout } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Plus, User, LogOut, Zap, TrendingUp, BookOpen, HelpCircle } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { FileText, Plus, User, LogOut, Zap, TrendingUp, BookOpen, HelpCircle, ChevronDown } from "lucide-react";
 
 export default function Home() {
   const { user } = useAuth();
@@ -39,32 +40,41 @@ export default function Home() {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200">
-                <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-200">
-                  <User className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-grey-900">
-                    {user?.fullName || user?.username}
-                  </span>
-                  {user?.isEngineer && (
-                    <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs px-2 py-0.5 w-fit">
-                      Licensed Engineer
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                disabled={logout.isPending}
-                className="border-2 border-grey-300 text-grey-700 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200 hover:bg-grey-100 hover:border-grey-300">
+                    <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-200">
+                      <User className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-semibold text-grey-900">
+                        {user?.fullName || user?.username}
+                      </span>
+                      {user?.isEngineer && (
+                        <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs px-2 py-0.5 w-fit">
+                          Licensed Engineer
+                        </Badge>
+                      )}
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-grey-600" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-white border-2 border-grey-200 shadow-lg">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}</p>
+                    <p className="text-xs text-grey-600">{user?.email}</p>
+                  </div>
+                  <DropdownMenuSeparator className="bg-grey-200" />
+                  <DropdownMenuItem 
+                    onClick={handleLogout}
+                    disabled={logout.isPending}
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {logout.isPending ? "Logging out..." : "Logout"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

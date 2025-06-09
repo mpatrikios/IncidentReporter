@@ -5,8 +5,10 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useFormPersistence } from "@/hooks/use-form-persistence";
 import { FORM_STEPS } from "@/lib/types";
-import { Zap, User, Bell, Home } from "lucide-react";
+import { Zap, User, Bell, Home, ChevronDown, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth, useLogout } from "@/hooks/useAuth";
 
 // Step Components
 import { StepNavigation } from "@/components/wizard/step-navigation";
@@ -22,6 +24,8 @@ export default function ReportWizard() {
   const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const logout = useLogout();
   
   const reportId = id ? parseInt(id) : null;
   const { saveFormData, formatLastSaved } = useFormPersistence(reportId);
@@ -193,12 +197,33 @@ export default function ReportWizard() {
                 <Home className="h-4 w-4" />
                 Dashboard
               </Button>
-              <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200">
-                <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-200">
-                  <User className="h-4 w-4 text-blue-600" />
-                </div>
-                <span className="text-sm font-semibold text-grey-900">John Doe, P.E.</span>
-              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200 hover:bg-grey-100 hover:border-grey-300">
+                    <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-200">
+                      <User className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}, P.E.</span>
+                    <ChevronDown className="h-4 w-4 text-grey-600" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-white border-2 border-grey-200 shadow-lg">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}</p>
+                    <p className="text-xs text-grey-600">{user?.email}</p>
+                  </div>
+                  <DropdownMenuSeparator className="bg-grey-200" />
+                  <DropdownMenuItem 
+                    onClick={() => logout.mutate()}
+                    disabled={logout.isPending}
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {logout.isPending ? "Logging out..." : "Logout"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
