@@ -50,6 +50,8 @@ export function useLogin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      // Redirect to home page after successful login
+      window.location.href = "/";
     },
   });
 }
