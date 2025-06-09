@@ -24,45 +24,45 @@ export default function Login() {
         <div className="hidden lg:flex flex-col justify-center space-y-8">
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-primary/10 rounded-2xl">
-                <Zap className="h-8 w-8 text-primary" />
+              <div className="p-3 bg-blue-100 rounded-2xl border-2 border-blue-200">
+                <Zap className="h-8 w-8 text-blue-700" />
               </div>
-              <h1 className="text-3xl font-bold gradient-text">Engineering Suite</h1>
+              <h1 className="text-3xl font-bold text-blue-700">Engineering Suite</h1>
             </div>
-            <h2 className="text-4xl font-bold text-foreground leading-tight">
+            <h2 className="text-4xl font-bold text-grey-900 leading-tight">
               Professional Civil Engineering Documentation Platform
             </h2>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl text-grey-700">
               Streamline your engineering workflows with intelligent automation, modern interfaces, and comprehensive reporting tools.
             </p>
           </div>
           
           <div className="grid grid-cols-1 gap-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-primary/10 rounded-xl">
-                <Shield className="h-6 w-6 text-primary" />
+            <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
+              <div className="p-2 bg-blue-100 rounded-xl border border-blue-300">
+                <Shield className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg">Secure & Compliant</h3>
-                <p className="text-muted-foreground">Enterprise-grade security with industry standard compliance</p>
+                <h3 className="font-semibold text-lg text-blue-800">Secure & Compliant</h3>
+                <p className="text-blue-600">Enterprise-grade security with industry standard compliance</p>
               </div>
             </div>
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-accent/10 rounded-xl">
-                <Zap className="h-6 w-6 text-accent" />
+            <div className="flex items-start gap-4 p-4 rounded-xl bg-grey-50 border-2 border-grey-200">
+              <div className="p-2 bg-grey-100 rounded-xl border border-grey-300">
+                <Zap className="h-6 w-6 text-grey-700" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg">Intelligent Automation</h3>
-                <p className="text-muted-foreground">AI-powered report generation and workflow optimization</p>
+                <h3 className="font-semibold text-lg text-grey-800">Intelligent Automation</h3>
+                <p className="text-grey-600">AI-powered report generation and workflow optimization</p>
               </div>
             </div>
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/20 rounded-xl">
-                <Users className="h-6 w-6 text-emerald-600" />
+            <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
+              <div className="p-2 bg-blue-100 rounded-xl border border-blue-300">
+                <Users className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg">Team Collaboration</h3>
-                <p className="text-muted-foreground">Real-time collaboration and review workflows</p>
+                <h3 className="font-semibold text-lg text-blue-800">Team Collaboration</h3>
+                <p className="text-blue-600">Real-time collaboration and review workflows</p>
               </div>
             </div>
           </div>
@@ -70,16 +70,16 @@ export default function Login() {
 
         {/* Right side - Login Form */}
         <div className="w-full max-w-md mx-auto lg:mx-0">
-          <Card className="glass-effect border-0 shadow-2xl animate-scale-in">
+          <Card className="bg-white border-2 border-grey-200 shadow-xl animate-scale-in">
             <CardHeader className="space-y-4 text-center pb-8">
               <div className="flex justify-center lg:hidden">
-                <div className="p-3 bg-primary/10 rounded-2xl">
-                  <Zap className="h-8 w-8 text-primary" />
+                <div className="p-3 bg-blue-100 rounded-2xl border-2 border-blue-200">
+                  <Zap className="h-8 w-8 text-blue-700" />
                 </div>
               </div>
               <div className="space-y-2">
-                <CardTitle className="text-3xl font-bold gradient-text">Welcome Back</CardTitle>
-                <CardDescription className="text-base text-muted-foreground">
+                <CardTitle className="text-3xl font-bold text-blue-700">Welcome Back</CardTitle>
+                <CardDescription className="text-base text-grey-600">
                   Sign in to access your engineering workspace
                 </CardDescription>
               </div>
@@ -88,7 +88,7 @@ export default function Login() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-medium">Username</Label>
+                    <Label htmlFor="username" className="text-sm font-semibold text-grey-800">Username</Label>
                     <Input
                       id="username"
                       type="text"
@@ -96,11 +96,11 @@ export default function Login() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       required
-                      className="h-12 px-4 bg-background border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-12 px-4 bg-white border-2 border-grey-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all text-grey-900"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                    <Label htmlFor="password" className="text-sm font-semibold text-grey-800">Password</Label>
                     <Input
                       id="password"
                       type="password"
@@ -108,14 +108,14 @@ export default function Login() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="h-12 px-4 bg-background border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-12 px-4 bg-white border-2 border-grey-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all text-grey-900"
                     />
                   </div>
                 </div>
                 
                 {login.error && (
-                  <Alert className="border-destructive/20 bg-destructive/10">
-                    <AlertDescription className="text-destructive">
+                  <Alert className="border-2 border-red-300 bg-red-50">
+                    <AlertDescription className="text-red-700 font-medium">
                       {login.error.message || "Invalid credentials. Please try again."}
                     </AlertDescription>
                   </Alert>
@@ -123,7 +123,7 @@ export default function Login() {
 
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="w-full h-12 text-base font-semibold bg-blue-700 hover:bg-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-blue-800"
                   disabled={login.isPending}
                 >
                   {login.isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
@@ -133,33 +133,33 @@ export default function Login() {
               
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border/50"></div>
+                  <div className="w-full border-t-2 border-grey-200"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-card text-muted-foreground">Demo Accounts</span>
+                  <span className="px-4 bg-white text-grey-600 font-semibold">Demo Accounts</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
-                <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-100 dark:bg-emerald-900/20 rounded-lg">
-                      <Shield className="h-4 w-4 text-emerald-600" />
+                    <div className="p-2 bg-blue-100 rounded-lg border border-blue-300">
+                      <Shield className="h-4 w-4 text-blue-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium">Engineer Account</div>
-                      <div className="text-xs text-muted-foreground font-mono">john.doe / password123</div>
+                      <div className="text-sm font-semibold text-blue-800">Engineer Account</div>
+                      <div className="text-xs text-blue-600 font-mono font-medium">john.doe / password123</div>
                     </div>
                   </div>
                 </div>
-                <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+                <div className="p-4 rounded-xl bg-grey-50 border-2 border-grey-200">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                      <Users className="h-4 w-4 text-blue-600" />
+                    <div className="p-2 bg-grey-100 rounded-lg border border-grey-300">
+                      <Users className="h-4 w-4 text-grey-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium">User Account</div>
-                      <div className="text-xs text-muted-foreground font-mono">jane.smith / password123</div>
+                      <div className="text-sm font-semibold text-grey-800">User Account</div>
+                      <div className="text-xs text-grey-600 font-mono font-medium">jane.smith / password123</div>
                     </div>
                   </div>
                 </div>
