@@ -113,6 +113,7 @@ export default function ReportWizard() {
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(1, data)}
             isFirstStep={true}
+            reportId={reportId}
           />
         );
       case 2:
@@ -121,6 +122,7 @@ export default function ReportWizard() {
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(2, data)}
             onPrevious={() => setCurrentStep(1)}
+            reportId={reportId}
           />
         );
       case 3:
@@ -129,6 +131,7 @@ export default function ReportWizard() {
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(3, data)}
             onPrevious={() => setCurrentStep(2)}
+            reportId={reportId}
           />
         );
       case 4:
@@ -137,6 +140,7 @@ export default function ReportWizard() {
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(4, data)}
             onPrevious={() => setCurrentStep(3)}
+            reportId={reportId}
           />
         );
       case 5:

@@ -7,14 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface SiteAnalysisProps {
   initialData?: Partial<SiteAnalysis>;
   onSubmit: (data: SiteAnalysis) => void;
   onPrevious: () => void;
+  reportId?: number | null;
 }
 
-export function SiteAnalysisStep({ initialData, onSubmit, onPrevious }: SiteAnalysisProps) {
+export function SiteAnalysisStep({ initialData, onSubmit, onPrevious, reportId }: SiteAnalysisProps) {
   const form = useForm<SiteAnalysis>({
     resolver: zodResolver(siteAnalysisSchema),
     defaultValues: {
@@ -27,6 +29,9 @@ export function SiteAnalysisStep({ initialData, onSubmit, onPrevious }: SiteAnal
       ...initialData,
     },
   });
+
+  // Auto-save form data as user types
+  const { isSaving } = useAutoSave(reportId, 2, form.watch());
 
   const environmentalOptions = [
     "Wetlands",

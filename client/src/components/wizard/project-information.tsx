@@ -5,19 +5,22 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface ProjectInformationProps {
   initialData?: Partial<ProjectInformation>;
   onSubmit: (data: ProjectInformation) => void;
   onPrevious?: () => void;
   isFirstStep?: boolean;
+  reportId?: number | null;
 }
 
 export function ProjectInformationStep({ 
   initialData, 
   onSubmit, 
   onPrevious,
-  isFirstStep = false 
+  isFirstStep = false,
+  reportId 
 }: ProjectInformationProps) {
   const form = useForm<ProjectInformation>({
     resolver: zodResolver(projectInformationSchema),
@@ -32,6 +35,9 @@ export function ProjectInformationStep({
       ...initialData,
     },
   });
+
+  // Auto-save form data as user types
+  const { isSaving } = useAutoSave(reportId, 1, form.watch());
 
   return (
     <div className="space-y-8">
