@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { useEffect } from "react";
 
 interface DesignSpecificationsProps {
   initialData?: Partial<DesignSpecifications>;
@@ -40,6 +41,26 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
 
   // Auto-save form data as user types
   const { isSaving } = useAutoSave(reportId, 3, form.watch());
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      form.reset({
+        designType: "structural",
+        deadLoad: undefined,
+        liveLoad: undefined,
+        material: "",
+        concreteStrength: "",
+        rebarGrade: "",
+        slump: undefined,
+        designCodes: [],
+        seismicCategory: "",
+        windSpeed: undefined,
+        additionalNotes: "",
+        ...initialData,
+      });
+    }
+  }, [initialData, form]);
 
   const designType = form.watch("designType");
   const material = form.watch("material");

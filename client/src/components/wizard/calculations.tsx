@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { useEffect } from "react";
 
 interface CalculationsProps {
   initialData?: Partial<Calculations>;

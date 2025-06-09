@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { useEffect } from "react";
 
 interface ProjectInformationProps {
   initialData?: Partial<ProjectInformation>;
@@ -38,6 +39,22 @@ export function ProjectInformationStep({
 
   // Auto-save form data as user types
   const { isSaving } = useAutoSave(reportId, 1, form.watch());
+
+  // Reset form when initialData changes (when switching back to this step)
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      form.reset({
+        projectName: "",
+        projectLocation: "",
+        clientName: "",
+        projectDescription: "",
+        projectManager: "",
+        startDate: "",
+        expectedCompletionDate: "",
+        ...initialData,
+      });
+    }
+  }, [initialData, form]);
 
   return (
     <div className="space-y-8">

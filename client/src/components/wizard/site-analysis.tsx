@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { useEffect } from "react";
 
 interface SiteAnalysisProps {
   initialData?: Partial<SiteAnalysis>;
@@ -32,6 +33,21 @@ export function SiteAnalysisStep({ initialData, onSubmit, onPrevious, reportId }
 
   // Auto-save form data as user types
   const { isSaving } = useAutoSave(reportId, 2, form.watch());
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      form.reset({
+        siteArea: 0,
+        soilType: "",
+        groundwaterLevel: undefined,
+        existingStructures: "",
+        accessibilityNotes: "",
+        environmentalFactors: [],
+        ...initialData,
+      });
+    }
+  }, [initialData, form]);
 
   const environmentalOptions = [
     "Wetlands",
