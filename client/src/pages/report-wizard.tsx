@@ -208,8 +208,8 @@ export default function ReportWizard() {
                     <ChevronDown className="h-4 w-4 text-grey-600" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white border-2 border-grey-200 shadow-lg">
-                  <div className="px-3 py-2">
+                <DropdownMenuContent align="end" className="w-64 bg-white border-2 border-grey-200 shadow-lg">
+                  <div className="px-4 py-4">
                     <p className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}</p>
                     <p className="text-xs text-grey-600">{user?.email}</p>
                   </div>
@@ -217,7 +217,7 @@ export default function ReportWizard() {
                   <DropdownMenuItem 
                     onClick={() => logout.mutate()}
                     disabled={logout.isPending}
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer px-4 py-3"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     {logout.isPending ? "Logging out..." : "Logout"}

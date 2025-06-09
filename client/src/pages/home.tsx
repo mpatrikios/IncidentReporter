@@ -59,8 +59,8 @@ export default function Home() {
                     <ChevronDown className="h-4 w-4 text-grey-600" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white border-2 border-grey-200 shadow-lg">
-                  <div className="px-3 py-2">
+                <DropdownMenuContent align="end" className="w-64 bg-white border-2 border-grey-200 shadow-lg">
+                  <div className="px-4 py-4">
                     <p className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}</p>
                     <p className="text-xs text-grey-600">{user?.email}</p>
                   </div>
@@ -68,7 +68,7 @@ export default function Home() {
                   <DropdownMenuItem 
                     onClick={handleLogout}
                     disabled={logout.isPending}
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer px-4 py-3"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     {logout.isPending ? "Logging out..." : "Logout"}
@@ -84,10 +84,6 @@ export default function Home() {
       <div className="relative overflow-hidden bg-grey-50 border-b-2 border-grey-200">
         <div className="container mx-auto px-6 py-12">
           <div className="relative z-10 max-w-4xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-sm font-semibold mb-6 border-2 border-blue-200">
-              <TrendingUp className="h-4 w-4" />
-              Professional Engineering Platform
-            </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4 text-grey-900">
               Welcome back, <span className="text-blue-700">{user?.firstName || user?.username}</span>
             </h2>
