@@ -3,7 +3,7 @@ import { useAuth, useLogout } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Plus, User, LogOut } from "lucide-react";
+import { FileText, Plus, User, LogOut, Zap, TrendingUp, BookOpen, HelpCircle } from "lucide-react";
 
 export default function Home() {
   const { user } = useAuth();
