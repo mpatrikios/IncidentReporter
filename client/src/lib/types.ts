@@ -63,3 +63,8 @@ export interface WizardContextType {
   updateFormData: (stepName: string, data: any) => void;
   saveStep: (stepNumber: number, data: any, isCompleted?: boolean) => Promise<void>;
 }
+
+export interface StepRef<T = any> {
+  save: () => Promise<void>;
+  getValues: () => T;
+}

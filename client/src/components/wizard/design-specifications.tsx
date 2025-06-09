@@ -11,17 +11,24 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import { useEffect } from "react";
+import { useEffect, forwardRef, useImperativeHandle } from "react";
+import type { StepRef } from "@/lib/types";
+import type { UseFormReturn } from "react-hook-form";
 
 interface DesignSpecificationsProps {
   initialData?: Partial<DesignSpecifications>;
   onSubmit: (data: DesignSpecifications) => void;
-  onPrevious: () => void;
+  onPrevious?: () => void;
   reportId?: number | null;
 }
 
-export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, reportId }: DesignSpecificationsProps) {
-  const form = useForm<DesignSpecifications>({
+export const DesignSpecificationsStep = forwardRef<StepRef<DesignSpecifications>, DesignSpecificationsProps>(({ 
+  initialData, 
+  onSubmit, 
+  onPrevious,
+  reportId 
+}, ref) => {
+  const form: UseFormReturn<DesignSpecifications> = useForm<DesignSpecifications>({
     resolver: zodResolver(designSpecificationsSchema),
     defaultValues: {
       designType: "structural",
@@ -38,6 +45,18 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
       ...initialData,
     },
   });
+
+  // Expose save method to parent
+  useImperativeHandle(ref, () => ({
+    save: async () => {
+      const isValid = await form.trigger();
+      if (isValid) {
+        const values = form.getValues();
+        onSubmit(values);
+      }
+    },
+    getValues: () => form.getValues(),
+  }));
 
   // Auto-save form data as user types
   const { isSaving } = useAutoSave(reportId, 3, form.watch());
@@ -190,7 +209,7 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-semibold text-slate-900">
-                        Dead Load (psf) <span className="text-red-500">*</span>
+                        Dead Load (kN/m²) <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <div className="relative">
@@ -199,10 +218,10 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
                             type="number"
                             placeholder="50"
                             className="px-4 py-3 pr-12"
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
                           />
                           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                            <span className="text-slate-500 text-sm">psf</span>
+                            <span className="text-slate-500 text-sm">kN/m²</span>
                           </div>
                         </div>
                       </FormControl>
@@ -217,7 +236,7 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-semibold text-slate-900">
-                        Live Load (psf) <span className="text-red-500">*</span>
+                        Live Load (kN/m²) <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <div className="relative">
@@ -226,10 +245,10 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
                             type="number"
                             placeholder="40"
                             className="px-4 py-3 pr-12"
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
                           />
                           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                            <span className="text-slate-500 text-sm">psf</span>
+                            <span className="text-slate-500 text-sm">kN/m²</span>
                           </div>
                         </div>
                       </FormControl>
@@ -333,7 +352,7 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-medium text-slate-700">
-                            Slump (inches)
+                            Slump (mm)
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -343,7 +362,7 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
                               min="2"
                               max="8"
                               className="px-3 py-2"
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                              onChange={(e) => field.onChange(e.target.valueAsNumber)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -436,7 +455,7 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-slate-700">
-                        Wind Speed (mph)
+                        Wind Speed (m/s)
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -444,7 +463,7 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
                           type="number"
                           placeholder="115"
                           className="px-4 py-3"
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                          onChange={(e) => field.onChange(e.target.valueAsNumber)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -489,11 +508,12 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
               Previous: Site Analysis
             </Button>
             
-            <Button
+            <Button 
               type="submit"
-              className="flex items-center px-8 py-3 bg-primary-600 hover:bg-primary-700"
+              className="flex items-center px-8 py-3 bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+              disabled={isSaving}
             >
-              Next: Calculations
+              {isSaving ? "Saving..." : "Next: Calculations"}
               <i className="fas fa-chevron-right ml-2"></i>
             </Button>
           </div>
@@ -501,4 +521,4 @@ export function DesignSpecificationsStep({ initialData, onSubmit, onPrevious, re
       </Form>
     </div>
   );
-}
+});

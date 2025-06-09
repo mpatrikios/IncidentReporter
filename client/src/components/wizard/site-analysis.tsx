@@ -8,16 +8,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import { useEffect } from "react";
+import { useEffect, forwardRef, useImperativeHandle } from "react";
+import type { StepRef } from "@/lib/types";
 
 interface SiteAnalysisProps {
   initialData?: Partial<SiteAnalysis>;
   onSubmit: (data: SiteAnalysis) => void;
-  onPrevious: () => void;
+  onPrevious?: () => void;
   reportId?: number | null;
 }
 
-export function SiteAnalysisStep({ initialData, onSubmit, onPrevious, reportId }: SiteAnalysisProps) {
+export const SiteAnalysisStep = forwardRef<StepRef<SiteAnalysis>, SiteAnalysisProps>(({ 
+  initialData, 
+  onSubmit, 
+  onPrevious,
+  reportId 
+}, ref) => {
   const form = useForm<SiteAnalysis>({
     resolver: zodResolver(siteAnalysisSchema),
     defaultValues: {
@@ -30,6 +36,18 @@ export function SiteAnalysisStep({ initialData, onSubmit, onPrevious, reportId }
       ...initialData,
     },
   });
+
+  // Expose save method to parent
+  useImperativeHandle(ref, () => ({
+    save: async () => {
+      const isValid = await form.trigger();
+      if (isValid) {
+        const values = form.getValues();
+        onSubmit(values);
+      }
+    },
+    getValues: () => form.getValues(),
+  }));
 
   // Auto-save form data as user types
   const { isSaving } = useAutoSave(reportId, 2, form.watch());
@@ -259,4 +277,4 @@ export function SiteAnalysisStep({ initialData, onSubmit, onPrevious, reportId }
       </Form>
     </div>
   );
-}
+});

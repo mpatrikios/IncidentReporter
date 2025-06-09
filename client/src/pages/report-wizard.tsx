@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -9,6 +9,14 @@ import { Zap, User, Bell, Home, ChevronDown, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth, useLogout } from "@/hooks/useAuth";
+import type { StepRef } from "@/lib/types";
+import type { ProjectInformation } from "@shared/schema";
+import type { SiteAnalysis } from "@shared/schema";
+import type { DesignSpecifications } from "@shared/schema";
+import type { Calculations } from "@shared/schema";
+import type { ReviewAttachments } from "@shared/schema";
+import type { FormStep } from "@shared/schema";
+import type { Report } from "@shared/schema";
 
 // Step Components
 import { StepNavigation } from "@/components/wizard/step-navigation";
@@ -26,18 +34,19 @@ export default function ReportWizard() {
   const { toast } = useToast();
   const { user } = useAuth();
   const logout = useLogout();
+  const stepRef = useRef<StepRef<any>>(null);
   
   const reportId = id ? parseInt(id) : null;
   const { saveFormData, formatLastSaved } = useFormPersistence(reportId);
 
   // Fetch report data
-  const { data: report, isLoading: reportLoading } = useQuery({
+  const { data: report, isLoading: reportLoading } = useQuery<Report>({
     queryKey: ["/api/reports", reportId],
     enabled: !!reportId,
   });
 
   // Fetch form steps
-  const { data: steps = [], isLoading: stepsLoading } = useQuery({
+  const { data: steps = [] as FormStep[], isLoading: stepsLoading } = useQuery<FormStep[]>({
     queryKey: ["/api/reports", reportId, "steps"],
     enabled: !!reportId,
   });
@@ -83,11 +92,11 @@ export default function ReportWizard() {
     );
   }
 
-  const completedSteps = steps.filter((step: any) => step.isCompleted).map((step: any) => step.stepNumber);
+  const completedSteps = steps.filter(step => step.isCompleted).map(step => step.stepNumber);
   const progress = Math.min((completedSteps.length / FORM_STEPS.length) * 100, 85);
 
   const getStepData = (stepNumber: number) => {
-    const step = steps.find((s: any) => s.stepNumber === stepNumber);
+    const step = steps.find(s => s.stepNumber === stepNumber);
     return step?.data || {};
   };
 
@@ -96,16 +105,40 @@ export default function ReportWizard() {
       // Save as partial data when navigating between steps, full validation only on final submit
       await saveFormData(stepNumber, data, false);
       
+      // Wait for the save to complete before switching steps
       if (goToNext && stepNumber < FORM_STEPS.length) {
+        // Invalidate the steps query to ensure fresh data
+        await queryClient.invalidateQueries({ queryKey: ["/api/reports", reportId, "steps"] });
         setCurrentStep(stepNumber + 1);
       }
     } catch (error) {
       console.error("Failed to save step:", error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save your progress. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const goToStep = (step: number) => {
-    setCurrentStep(step);
+  const goToStep = async (step: number) => {
+    try {
+      // Save current step data before switching
+      if (stepRef.current?.save) {
+        await stepRef.current.save();
+      }
+      
+      // Invalidate the steps query to ensure fresh data
+      await queryClient.invalidateQueries({ queryKey: ["/api/reports", reportId, "steps"] });
+      setCurrentStep(step);
+    } catch (error) {
+      console.error("Failed to save step before switching:", error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save your progress. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const currentStepConfig = FORM_STEPS.find(step => step.number === currentStep);
@@ -117,6 +150,7 @@ export default function ReportWizard() {
       case 1:
         return (
           <ProjectInformationStep
+            ref={stepRef as React.RefObject<StepRef<ProjectInformation>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(1, data)}
             isFirstStep={true}
@@ -126,6 +160,7 @@ export default function ReportWizard() {
       case 2:
         return (
           <SiteAnalysisStep
+            ref={stepRef as React.RefObject<StepRef<SiteAnalysis>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(2, data)}
             onPrevious={() => setCurrentStep(1)}
@@ -135,6 +170,7 @@ export default function ReportWizard() {
       case 3:
         return (
           <DesignSpecificationsStep
+            ref={stepRef as React.RefObject<StepRef<DesignSpecifications>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(3, data)}
             onPrevious={() => setCurrentStep(2)}
@@ -144,6 +180,7 @@ export default function ReportWizard() {
       case 4:
         return (
           <CalculationsStep
+            ref={stepRef as React.RefObject<StepRef<Calculations>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(4, data)}
             onPrevious={() => setCurrentStep(3)}
@@ -153,6 +190,7 @@ export default function ReportWizard() {
       case 5:
         return (
           <ReviewAttachmentsStep
+            ref={stepRef as React.RefObject<StepRef<ReviewAttachments>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(5, data)}
             onPrevious={() => setCurrentStep(4)}
@@ -164,7 +202,7 @@ export default function ReportWizard() {
           <SubmitReportStep
             reportId={reportId}
             onPrevious={() => setCurrentStep(5)}
-            formData={report?.formData || {}}
+            formData={report?.formData || {} as Record<string, any>}
           />
         );
       default:
@@ -217,10 +255,10 @@ export default function ReportWizard() {
                   <DropdownMenuItem 
                     onClick={() => logout.mutate()}
                     disabled={logout.isPending}
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer px-4 py-3"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
-                    {logout.isPending ? "Logging out..." : "Logout"}
+                    Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -231,9 +269,8 @@ export default function ReportWizard() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          
-          {/* Sidebar */}
-          <aside className="lg:col-span-1">
+          {/* Step Navigation */}
+          <div className="lg:col-span-1">
             <StepNavigation
               currentStep={currentStep}
               completedSteps={completedSteps}
@@ -241,38 +278,14 @@ export default function ReportWizard() {
               progress={progress}
               lastSaved={formatLastSaved()}
             />
-          </aside>
+          </div>
 
-          {/* Main Content */}
-          <main className="lg:col-span-3">
-            <div className="bg-white border-2 border-grey-200 shadow-lg rounded-xl overflow-hidden animate-fade-in">
-              
-              {/* Form Header */}
-              <div className="px-8 py-6 border-b-2 border-grey-200 bg-grey-50">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <h1 className="text-3xl font-bold text-grey-900">
-                      {currentStepConfig?.title}
-                    </h1>
-                    <p className="text-grey-700 text-lg">
-                      {currentStepConfig?.description}
-                    </p>
-                  </div>
-                  <div className="text-right px-4 py-3 rounded-xl bg-blue-50 border-2 border-blue-200">
-                    <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Project ID</div>
-                    <div className="font-mono text-sm font-bold text-blue-800 mt-1">
-                      PRJ-001
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Form Content */}
-              <div className="p-8 bg-white">
-                {renderCurrentStep()}
-              </div>
+          {/* Step Content */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-2xl shadow-lg border-2 border-border p-8">
+              {renderCurrentStep()}
             </div>
-          </main>
+          </div>
         </div>
       </div>
     </div>

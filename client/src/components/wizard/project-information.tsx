@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import { useEffect } from "react";
+import { useEffect, forwardRef, useImperativeHandle } from "react";
+import type { StepRef } from "@/lib/types";
 
 interface ProjectInformationProps {
   initialData?: Partial<ProjectInformation>;
@@ -16,13 +17,13 @@ interface ProjectInformationProps {
   reportId?: number | null;
 }
 
-export function ProjectInformationStep({ 
+export const ProjectInformationStep = forwardRef<StepRef<ProjectInformation>, ProjectInformationProps>(({ 
   initialData, 
   onSubmit, 
   onPrevious,
   isFirstStep = false,
   reportId 
-}: ProjectInformationProps) {
+}, ref) => {
   const form = useForm<ProjectInformation>({
     resolver: zodResolver(projectInformationSchema),
     defaultValues: {
@@ -36,6 +37,18 @@ export function ProjectInformationStep({
       ...initialData,
     },
   });
+
+  // Expose save method to parent
+  useImperativeHandle(ref, () => ({
+    save: async () => {
+      const isValid = await form.trigger();
+      if (isValid) {
+        const values = form.getValues();
+        onSubmit(values);
+      }
+    },
+    getValues: () => form.getValues(),
+  }));
 
   // Auto-save form data as user types
   const { isSaving } = useAutoSave(reportId, 1, form.watch());
@@ -237,4 +250,4 @@ export function ProjectInformationStep({
       </Form>
     </div>
   );
-}
+});

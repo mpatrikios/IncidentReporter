@@ -7,17 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import { useEffect } from "react";
+import { useEffect, forwardRef, useImperativeHandle } from "react";
+import type { StepRef } from "@/lib/types";
+import type { UseFormReturn } from "react-hook-form";
 
 interface CalculationsProps {
   initialData?: Partial<Calculations>;
   onSubmit: (data: Calculations) => void;
-  onPrevious: () => void;
+  onPrevious?: () => void;
   reportId?: number | null;
 }
 
-export function CalculationsStep({ initialData, onSubmit, onPrevious, reportId }: CalculationsProps) {
-  const form = useForm<Calculations>({
+export const CalculationsStep = forwardRef<StepRef<Calculations>, CalculationsProps>(({ 
+  initialData, 
+  onSubmit, 
+  onPrevious,
+  reportId 
+}, ref) => {
+  const form: UseFormReturn<Calculations> = useForm<Calculations>({
     resolver: zodResolver(calculationsSchema),
     defaultValues: {
       calculationType: [],
@@ -28,6 +35,18 @@ export function CalculationsStep({ initialData, onSubmit, onPrevious, reportId }
       ...initialData,
     },
   });
+
+  // Expose save method to parent
+  useImperativeHandle(ref, () => ({
+    save: async () => {
+      const isValid = await form.trigger();
+      if (isValid) {
+        const values = form.getValues();
+        onSubmit(values);
+      }
+    },
+    getValues: () => form.getValues(),
+  }));
 
   // Auto-save form data as user types
   const { isSaving } = useAutoSave(reportId, 4, form.watch());
@@ -203,21 +222,24 @@ export function CalculationsStep({ initialData, onSubmit, onPrevious, reportId }
 
           {/* Form Actions */}
           <div className="flex justify-between items-center pt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onPrevious}
-              className="flex items-center px-6 py-3"
-            >
-              <i className="fas fa-chevron-left mr-2"></i>
-              Previous: Design Specifications
-            </Button>
+            {onPrevious && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onPrevious}
+                className="flex items-center px-6 py-3"
+              >
+                <i className="fas fa-chevron-left mr-2"></i>
+                Previous: Design Specifications
+              </Button>
+            )}
             
             <Button
               type="submit"
-              className="flex items-center px-8 py-3 bg-primary-600 hover:bg-primary-700"
+              className="flex items-center px-8 py-3 bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+              disabled={isSaving}
             >
-              Next: Review & Attachments
+              {isSaving ? "Saving..." : "Next: Review & Attachments"}
               <i className="fas fa-chevron-right ml-2"></i>
             </Button>
           </div>
@@ -225,4 +247,4 @@ export function CalculationsStep({ initialData, onSubmit, onPrevious, reportId }
       </Form>
     </div>
   );
-}
+});
