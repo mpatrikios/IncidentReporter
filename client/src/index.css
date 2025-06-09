@@ -4,25 +4,25 @@
 
 :root {
   --background: 255 255 255; /* #ffffff */
-  --foreground: 15 23 42; /* #0f172a */
-  --muted: 241 245 249; /* #f1f5f9 */
-  --muted-foreground: 71 85 105; /* #475569 */
+  --foreground: 30 41 59; /* #1e293b */
+  --muted: 248 250 252; /* #f8fafc */
+  --muted-foreground: 100 116 139; /* #64748b */
   --popover: 255 255 255; /* #ffffff */
-  --popover-foreground: 15 23 42; /* #0f172a */
+  --popover-foreground: 30 41 59; /* #1e293b */
   --card: 255 255 255; /* #ffffff */
-  --card-foreground: 15 23 42; /* #0f172a */
+  --card-foreground: 30 41 59; /* #1e293b */
   --border: 203 213 225; /* #cbd5e1 */
   --input: 255 255 255; /* #ffffff */
-  --primary: 59 130 246; /* #3b82f6 - Higher contrast blue */
+  --primary: 29 78 216; /* #1d4ed8 - Professional blue */
   --primary-foreground: 255 255 255; /* #ffffff */
-  --secondary: 226 232 240; /* #e2e8f0 */
-  --secondary-foreground: 30 41 59; /* #1e293b */
-  --accent: 139 92 246; /* #8b5cf6 - Purple accent */
+  --secondary: 241 245 249; /* #f1f5f9 */
+  --secondary-foreground: 51 65 85; /* #334155 */
+  --accent: 37 99 235; /* #2563eb - Lighter blue accent */
   --accent-foreground: 255 255 255; /* #ffffff */
-  --destructive: 239 68 68; /* #ef4444 */
+  --destructive: 220 38 38; /* #dc2626 */
   --destructive-foreground: 255 255 255; /* #ffffff */
-  --ring: 59 130 246; /* #3b82f6 */
-  --radius: 0.75rem;
+  --ring: 29 78 216; /* #1d4ed8 */
+  --radius: 0.5rem;
 }
 
 .dark {
@@ -103,6 +103,29 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  /* High contrast blue-grey color utilities */
+  .text-blue-900 { color: rgb(30 58 138); }
+  .text-blue-800 { color: rgb(30 64 175); }
+  .text-blue-700 { color: rgb(29 78 216); }
+  .text-blue-600 { color: rgb(37 99 235); }
+  .text-grey-900 { color: rgb(17 24 39); }
+  .text-grey-800 { color: rgb(31 41 55); }
+  .text-grey-700 { color: rgb(55 65 81); }
+  .text-grey-600 { color: rgb(75 85 99); }
+  
+  .bg-blue-50 { background-color: rgb(239 246 255); }
+  .bg-blue-100 { background-color: rgb(219 234 254); }
+  .bg-blue-600 { background-color: rgb(37 99 235); }
+  .bg-blue-700 { background-color: rgb(29 78 216); }
+  .bg-grey-50 { background-color: rgb(249 250 251); }
+  .bg-grey-100 { background-color: rgb(243 244 246); }
+  .bg-grey-200 { background-color: rgb(229 231 235); }
+  
+  .border-blue-200 { border-color: rgb(191 219 254); }
+  .border-blue-300 { border-color: rgb(147 197 253); }
+  .border-grey-200 { border-color: rgb(229 231 235); }
+  .border-grey-300 { border-color: rgb(209 213 219); }
 }
 
 @keyframes slideIn {

@@ -58,49 +58,47 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden bg-grey-50 border-b-2 border-grey-200">
         <div className="container mx-auto px-6 py-12">
           <div className="relative z-10 max-w-4xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-sm font-semibold mb-6 border-2 border-blue-200">
               <TrendingUp className="h-4 w-4" />
               Professional Engineering Platform
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Welcome back, <span className="gradient-text">{user?.firstName || user?.username}</span>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-grey-900">
+              Welcome back, <span className="text-blue-700">{user?.firstName || user?.username}</span>
             </h2>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl">
+            <p className="text-xl text-grey-700 mb-8 max-w-2xl">
               Streamline your civil engineering documentation with intelligent automation and modern workflows
             </p>
             <Button 
               size="lg" 
               onClick={handleCreateReport}
-              className="gap-2 shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+              className="gap-2 shadow-lg hover:shadow-xl transition-all duration-200 bg-blue-700 hover:bg-blue-800 text-white border-2 border-blue-800"
             >
               <Plus className="h-5 w-5" />
               Create New Report
             </Button>
           </div>
         </div>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none"></div>
       </div>
 
       <div className="container mx-auto px-6 py-12">
         {/* Main Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          <Card className="glass-effect border-0 shadow-xl card-hover animate-scale-in relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <CardHeader className="text-center relative z-10 pb-4">
-              <div className="p-4 bg-primary/10 rounded-2xl w-fit mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
-                <Plus className="h-8 w-8 text-primary" />
+          <Card className="bg-white border-2 border-grey-200 shadow-lg card-hover animate-scale-in">
+            <CardHeader className="text-center pb-4">
+              <div className="p-4 bg-blue-100 rounded-xl w-fit mx-auto mb-4 border-2 border-blue-200">
+                <Plus className="h-8 w-8 text-blue-700" />
               </div>
-              <CardTitle className="text-xl">Create New Report</CardTitle>
-              <CardDescription className="text-base">
+              <CardTitle className="text-xl text-grey-900">Create New Report</CardTitle>
+              <CardDescription className="text-base text-grey-600">
                 Start a new engineering report using our intelligent step-by-step wizard
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-center relative z-10">
+            <CardContent className="text-center">
               <Button 
-                className="w-full gap-2 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80" 
+                className="w-full gap-2 bg-blue-700 hover:bg-blue-800 text-white border-2 border-blue-800" 
                 onClick={handleCreateReport}
               >
                 <FileText className="h-4 w-4" />
@@ -109,38 +107,36 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="glass-effect border-0 shadow-xl card-hover animate-scale-in relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <CardHeader className="relative z-10 pb-4">
-              <div className="p-4 bg-accent/10 rounded-2xl w-fit mb-4 group-hover:bg-accent/20 transition-colors">
-                <FileText className="h-8 w-8 text-accent" />
+          <Card className="bg-white border-2 border-grey-200 shadow-lg card-hover animate-scale-in">
+            <CardHeader className="pb-4">
+              <div className="p-4 bg-grey-100 rounded-xl w-fit mb-4 border-2 border-grey-200">
+                <FileText className="h-8 w-8 text-grey-700" />
               </div>
-              <CardTitle className="text-xl">My Reports</CardTitle>
-              <CardDescription className="text-base">
+              <CardTitle className="text-xl text-grey-900">My Reports</CardTitle>
+              <CardDescription className="text-base text-grey-600">
                 View and manage your submitted engineering reports
               </CardDescription>
             </CardHeader>
-            <CardContent className="relative z-10">
-              <Button variant="outline" className="w-full hover:bg-accent hover:text-accent-foreground" disabled>
+            <CardContent>
+              <Button variant="outline" className="w-full border-2 border-grey-300 text-grey-700 hover:bg-grey-100" disabled>
                 Coming Soon
               </Button>
             </CardContent>
           </Card>
 
           {user?.isEngineer && (
-            <Card className="glass-effect border-0 shadow-xl card-hover animate-scale-in relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <CardHeader className="relative z-10 pb-4">
-                <div className="p-4 bg-emerald-100 dark:bg-emerald-900/20 rounded-2xl w-fit mb-4 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/30 transition-colors">
-                  <User className="h-8 w-8 text-emerald-600" />
+            <Card className="bg-white border-2 border-grey-200 shadow-lg card-hover animate-scale-in">
+              <CardHeader className="pb-4">
+                <div className="p-4 bg-blue-50 rounded-xl w-fit mb-4 border-2 border-blue-200">
+                  <User className="h-8 w-8 text-blue-600" />
                 </div>
-                <CardTitle className="text-xl">Review Queue</CardTitle>
-                <CardDescription className="text-base">
+                <CardTitle className="text-xl text-grey-900">Review Queue</CardTitle>
+                <CardDescription className="text-base text-grey-600">
                   Reports pending your engineering review and approval
                 </CardDescription>
               </CardHeader>
-              <CardContent className="relative z-10">
-                <Button variant="outline" className="w-full hover:bg-emerald-600 hover:text-white" disabled>
+              <CardContent>
+                <Button variant="outline" className="w-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50" disabled>
                   Coming Soon
                 </Button>
               </CardContent>

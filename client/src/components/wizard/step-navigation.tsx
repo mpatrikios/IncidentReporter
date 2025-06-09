@@ -53,47 +53,39 @@ export function StepNavigation({
               onClick={() => isAccessible && onStepClick(step.number)}
               disabled={!isAccessible}
               className={cn(
-                "w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 text-left group",
+                "w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 text-left group border-2",
                 "hover:shadow-md",
-                isCompleted && "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30",
-                isCurrent && !isCompleted && "bg-primary/10 border border-primary/20 hover:bg-primary/20 shadow-md",
-                !isCurrent && !isCompleted && isAccessible && "bg-muted/50 border border-border hover:bg-muted",
+                isCompleted && "bg-blue-50 border-blue-300 hover:bg-blue-100 text-blue-800",
+                isCurrent && !isCompleted && "bg-blue-100 border-blue-400 hover:bg-blue-200 shadow-md text-blue-900",
+                !isCurrent && !isCompleted && isAccessible && "bg-white border-grey-200 hover:bg-grey-50 text-grey-700",
                 !isAccessible && "opacity-50 cursor-not-allowed"
               )}
             >
               <div className={cn(
-                "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200",
-                isCompleted && "bg-emerald-600 shadow-lg shadow-emerald-600/25",
-                isCurrent && !isCompleted && "bg-primary shadow-lg shadow-primary/25", 
-                !isCurrent && !isCompleted && "bg-muted-foreground/20 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/25"
+                "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 border-2",
+                isCompleted && "bg-blue-600 border-blue-700 text-white",
+                isCurrent && !isCompleted && "bg-blue-700 border-blue-800 text-white", 
+                !isCurrent && !isCompleted && "bg-grey-100 border-grey-300 text-grey-600 group-hover:bg-blue-600 group-hover:border-blue-700 group-hover:text-white"
               )}>
                 {isCompleted ? (
-                  <CheckCircle className="w-5 h-5 text-white" />
+                  <CheckCircle className="w-5 h-5" />
                 ) : isCurrent ? (
-                  <Circle className="w-5 h-5 text-white fill-current" />
+                  <Circle className="w-5 h-5 fill-current" />
                 ) : (
-                  <span className={cn(
-                    "text-sm font-bold transition-colors",
-                    "text-muted-foreground group-hover:text-white"
-                  )}>
+                  <span className="text-sm font-bold transition-colors">
                     {step.number}
                   </span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className={cn(
-                  "font-semibold text-sm transition-colors",
-                  isCompleted && "text-emerald-700 dark:text-emerald-400",
-                  isCurrent && !isCompleted && "text-primary",
-                  !isCurrent && !isCompleted && "text-foreground group-hover:text-primary"
-                )}>
+                <div className="font-semibold text-sm">
                   {step.title}
                 </div>
                 <div className={cn(
                   "text-xs mt-1 transition-colors",
-                  isCompleted && "text-emerald-600 dark:text-emerald-500",
-                  isCurrent && !isCompleted && "text-primary/70",
-                  !isCurrent && !isCompleted && "text-muted-foreground"
+                  isCompleted && "text-blue-600",
+                  isCurrent && !isCompleted && "text-blue-700",
+                  !isCurrent && !isCompleted && "text-grey-600"
                 )}>
                   {isCompleted ? "Completed" : isCurrent ? "In Progress" : step.description}
                 </div>
@@ -104,14 +96,14 @@ export function StepNavigation({
       </nav>
 
       {/* Save Indicator */}
-      <div className="mt-8 pt-6 border-t border-border/50">
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-          <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg">
-            <CheckCircle className="h-4 w-4 text-emerald-600" />
+      <div className="mt-8 pt-6 border-t-2 border-grey-200">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 border-2 border-blue-200">
+          <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-300">
+            <CheckCircle className="h-4 w-4 text-blue-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Auto-saved</div>
-            <div className="text-xs text-emerald-600 dark:text-emerald-500 truncate">{lastSaved}</div>
+            <div className="text-xs font-semibold text-blue-800">Auto-saved</div>
+            <div className="text-xs text-blue-600 truncate">{lastSaved}</div>
           </div>
         </div>
       </div>
