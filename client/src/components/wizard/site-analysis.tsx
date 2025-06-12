@@ -81,7 +81,12 @@ export const SiteAnalysisStep = forwardRef<StepRef<SiteAnalysis>, SiteAnalysisPr
   return (
     <div className="space-y-8">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          // Allow navigation without validation - just submit current form data
+          const formData = form.getValues();
+          onSubmit(formData);
+        }} className="space-y-6">
           
           {/* Site Measurements */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

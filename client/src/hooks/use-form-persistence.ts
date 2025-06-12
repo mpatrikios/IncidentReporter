@@ -10,6 +10,7 @@ export function useFormPersistence(reportId: number | null | undefined) {
   const saveFormData = async (stepNumber: number, data: any, isCompleted: boolean = false) => {
     if (!reportId) return;
 
+    console.log(`Saving step ${stepNumber} data:`, data, `isCompleted: ${isCompleted}`);
     setIsSaving(true);
     try {
       const response = await fetch(`/api/reports/${reportId}/steps/${stepNumber}`, {
@@ -24,8 +25,13 @@ export function useFormPersistence(reportId: number | null | undefined) {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Save failed with response:", response.status, errorText);
         throw new Error("Failed to save");
       }
+      
+      const result = await response.json();
+      console.log("Save successful:", result);
       
       setLastSaved(new Date());
       queryClient.invalidateQueries({ queryKey: ["/api/reports", reportId, "steps"] });

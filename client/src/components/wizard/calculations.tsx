@@ -79,7 +79,12 @@ export const CalculationsStep = forwardRef<StepRef<Calculations>, CalculationsPr
   return (
     <div className="space-y-8">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          // Allow navigation without validation - just submit current form data
+          const formData = form.getValues();
+          onSubmit(formData);
+        }} className="space-y-6">
           
           {/* Calculation Types */}
           <FormField

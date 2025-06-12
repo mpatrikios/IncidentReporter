@@ -171,3 +171,145 @@
 .nav-item:hover {
   transform: translateY(-1px);
 }
+
+/* Report Wizard Semantic Styles */
+/* Loading State */
+.loading-screen-container {
+  @apply min-h-screen bg-slate-50 flex items-center justify-center;
+}
+
+.loading-content-center {
+  @apply text-center;
+}
+
+.loading-spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4;
+}
+
+.loading-message {
+  @apply text-slate-600;
+}
+
+/* Main Layout */
+.report-wizard-container {
+  @apply min-h-screen;
+}
+
+.wizard-main-content {
+  @apply max-w-7xl mx-auto px-6 py-8;
+}
+
+.wizard-layout-grid {
+  @apply grid grid-cols-1 lg:grid-cols-4 gap-8;
+}
+
+.wizard-sidebar-column {
+  @apply lg:col-span-1;
+}
+
+.wizard-content-column {
+  @apply lg:col-span-3;
+}
+
+.wizard-step-container {
+  @apply bg-white rounded-2xl shadow-lg border-2 border-border p-8;
+}
+
+/* Header Section */
+.wizard-header-sticky {
+  @apply bg-white border-b-2 border-grey-200 shadow-md sticky top-0 z-50;
+}
+
+.header-content-wrapper {
+  @apply max-w-7xl mx-auto px-6;
+}
+
+.header-nav-bar {
+  @apply flex justify-between items-center h-16 py-4;
+}
+
+.brand-section {
+  @apply flex items-center gap-4;
+}
+
+.brand-icon-container {
+  @apply p-3 bg-blue-100 rounded-xl border-2 border-blue-200;
+}
+
+.brand-icon {
+  @apply h-6 w-6 text-blue-700;
+}
+
+.brand-text-container {
+  @apply flex flex-col;
+}
+
+.brand-title {
+  @apply text-xl font-bold text-blue-700;
+}
+
+.brand-subtitle {
+  @apply text-xs text-grey-600 font-medium;
+}
+
+/* Header Actions */
+.header-actions {
+  @apply flex items-center gap-4;
+}
+
+.dashboard-nav-button {
+  @apply gap-2 border-2 border-grey-300 text-grey-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700;
+}
+
+.nav-button-icon {
+  @apply h-4 w-4;
+}
+
+/* User Profile */
+.user-profile-trigger {
+  @apply flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200 hover:bg-grey-100 hover:border-grey-300;
+}
+
+.profile-avatar-container {
+  @apply p-1.5 bg-blue-100 rounded-lg border border-blue-200;
+}
+
+.profile-avatar-icon {
+  @apply h-4 w-4 text-blue-600;
+}
+
+.profile-display-name {
+  @apply text-sm font-semibold text-grey-900;
+}
+
+.profile-dropdown-icon {
+  @apply h-4 w-4 text-grey-600;
+}
+
+.profile-dropdown-menu {
+  @apply w-64 bg-white border-2 border-grey-200 shadow-lg;
+}
+
+.profile-info-section {
+  @apply px-4 py-4;
+}
+
+.profile-name {
+  @apply text-sm font-semibold text-grey-900;
+}
+
+.profile-email {
+  @apply text-xs text-grey-600;
+}
+
+.profile-menu-separator {
+  @apply bg-grey-200;
+}
+
+.logout-menu-item {
+  @apply text-red-600 hover:text-red-700 hover:bg-red-50;
+}
+
+.logout-icon {
+  @apply h-4 w-4 mr-2;
+}

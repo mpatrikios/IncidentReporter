@@ -46,7 +46,7 @@ export default function ReportWizard() {
   });
 
   // Fetch form steps
-  const { data: steps = [] as FormStep[], isLoading: stepsLoading } = useQuery<FormStep[]>({
+  const { data: steps = [] as FormStep[], isLoading: stepsLoading, refetch: refetchSteps } = useQuery<FormStep[]>({
     queryKey: ["/api/reports", reportId, "steps"],
     enabled: !!reportId,
   });
@@ -83,10 +83,10 @@ export default function ReportWizard() {
 
   if (!reportId || reportLoading || stepsLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading report...</p>
+      <div className="loading-screen-container">
+        <div className="loading-content-center">
+          <div className="loading-spinner"></div>
+          <p className="loading-message">Loading report...</p>
         </div>
       </div>
     );
@@ -96,19 +96,28 @@ export default function ReportWizard() {
   const progress = Math.min((completedSteps.length / FORM_STEPS.length) * 100, 85);
 
   const getStepData = (stepNumber: number) => {
+    console.log(`All steps:`, steps);
     const step = steps.find(s => s.stepNumber === stepNumber);
-    return step?.data || {};
+    console.log(`Found step ${stepNumber}:`, step);
+    const data = step?.data || {};
+    console.log(`Getting data for step ${stepNumber}:`, data);
+    return data;
   };
 
   const handleStepSubmit = async (stepNumber: number, data: any, goToNext: boolean = true) => {
     try {
+      console.log(`Submitting step ${stepNumber} with data:`, data);
       // Save as partial data when navigating between steps, full validation only on final submit
       await saveFormData(stepNumber, data, false);
       
       // Wait for the save to complete before switching steps
       if (goToNext && stepNumber < FORM_STEPS.length) {
-        // Invalidate the steps query to ensure fresh data
-        await queryClient.invalidateQueries({ queryKey: ["/api/reports", reportId, "steps"] });
+        console.log(`Moving to step ${stepNumber + 1}`);
+        // Wait for save and force refetch fresh data
+        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log("Refetching steps data...");
+        const result = await refetchSteps();
+        console.log("Refetch result:", result);
         setCurrentStep(stepNumber + 1);
       }
     } catch (error) {
@@ -123,13 +132,31 @@ export default function ReportWizard() {
 
   const goToStep = async (step: number) => {
     try {
+      console.log(`Going from step ${currentStep} to step ${step}`);
       // Save current step data before switching
-      if (stepRef.current?.save) {
-        await stepRef.current.save();
+      if (stepRef.current?.getValues) {
+        const currentData = stepRef.current.getValues();
+        console.log(`Current step ${currentStep} data:`, currentData);
+        // Only save if there's meaningful data
+        const hasContent = Object.values(currentData).some(value => 
+          value !== "" && value !== null && value !== undefined && 
+          (Array.isArray(value) ? value.length > 0 : true)
+        );
+        
+        console.log(`Has content: ${hasContent}`);
+        if (hasContent) {
+          console.log(`Saving current step ${currentStep} data before switching`);
+          await saveFormData(currentStep, currentData, false);
+          // Wait longer to ensure save completes
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
       
-      // Invalidate the steps query to ensure fresh data
-      await queryClient.invalidateQueries({ queryKey: ["/api/reports", reportId, "steps"] });
+      // Force refetch of steps data
+      console.log("Refetching steps data in goToStep...");
+      const result = await refetchSteps();
+      console.log("GoToStep refetch result:", result);
+      
       setCurrentStep(step);
     } catch (error) {
       console.error("Failed to save step before switching:", error);
@@ -141,10 +168,10 @@ export default function ReportWizard() {
     }
   };
 
-  const currentStepConfig = FORM_STEPS.find(step => step.number === currentStep);
 
   const renderCurrentStep = () => {
     const stepData = getStepData(currentStep);
+    console.log(`Rendering step ${currentStep} with initialData:`, stepData);
     
     switch (currentStep) {
       case 1:
@@ -163,7 +190,7 @@ export default function ReportWizard() {
             ref={stepRef as React.RefObject<StepRef<SiteAnalysis>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(2, data)}
-            onPrevious={() => setCurrentStep(1)}
+            onPrevious={() => goToStep(1)}
             reportId={reportId}
           />
         );
@@ -173,7 +200,7 @@ export default function ReportWizard() {
             ref={stepRef as React.RefObject<StepRef<DesignSpecifications>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(3, data)}
-            onPrevious={() => setCurrentStep(2)}
+            onPrevious={() => goToStep(2)}
             reportId={reportId}
           />
         );
@@ -183,7 +210,7 @@ export default function ReportWizard() {
             ref={stepRef as React.RefObject<StepRef<Calculations>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(4, data)}
-            onPrevious={() => setCurrentStep(3)}
+            onPrevious={() => goToStep(3)}
             reportId={reportId}
           />
         );
@@ -193,7 +220,7 @@ export default function ReportWizard() {
             ref={stepRef as React.RefObject<StepRef<ReviewAttachments>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(5, data)}
-            onPrevious={() => setCurrentStep(4)}
+            onPrevious={() => goToStep(4)}
             reportId={reportId}
           />
         );
@@ -201,7 +228,7 @@ export default function ReportWizard() {
         return (
           <SubmitReportStep
             reportId={reportId}
-            onPrevious={() => setCurrentStep(5)}
+            onPrevious={() => goToStep(5)}
             formData={report?.formData || {} as Record<string, any>}
           />
         );
@@ -211,53 +238,53 @@ export default function ReportWizard() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="report-wizard-container">
       {/* Modern Header */}
-      <header className="bg-white border-b-2 border-grey-200 shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex justify-between items-center h-18 py-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-xl border-2 border-blue-200">
-                <Zap className="h-6 w-6 text-blue-700" />
+      <header className="wizard-header-sticky">
+        <div className="header-content-wrapper">
+          <div className="header-nav-bar">
+            <div className="brand-section">
+              <div className="brand-icon-container">
+                <Zap className="brand-icon" />
               </div>
-              <div>
-                <span className="text-xl font-bold text-blue-700">Engineering Suite</span>
-                <div className="text-xs text-grey-600 font-medium">Report Builder</div>
+              <div className="brand-text-container">
+                <span className="brand-title">Engineering Suite</span>
+                <div className="brand-subtitle">Report Builder</div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="header-actions">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setLocation("/")}
-                className="gap-2 border-2 border-grey-300 text-grey-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
+                className="dashboard-nav-button"
               >
-                <Home className="h-4 w-4" />
+                <Home className="nav-button-icon" />
                 Dashboard
               </Button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200 hover:bg-grey-100 hover:border-grey-300">
-                    <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-200">
-                      <User className="h-4 w-4 text-blue-600" />
+                  <Button variant="ghost" className="user-profile-trigger">
+                    <div className="profile-avatar-container">
+                      <User className="profile-avatar-icon" />
                     </div>
-                    <span className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}, P.E.</span>
-                    <ChevronDown className="h-4 w-4 text-grey-600" />
+                    <span className="profile-display-name">{user?.fullName || user?.username}, P.E.</span>
+                    <ChevronDown className="profile-dropdown-icon" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 bg-white border-2 border-grey-200 shadow-lg">
-                  <div className="px-4 py-4">
-                    <p className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}</p>
-                    <p className="text-xs text-grey-600">{user?.email}</p>
+                <DropdownMenuContent align="end" className="profile-dropdown-menu">
+                  <div className="profile-info-section">
+                    <p className="profile-name">{user?.fullName || user?.username}</p>
+                    <p className="profile-email">{user?.email}</p>
                   </div>
-                  <DropdownMenuSeparator className="bg-grey-200" />
+                  <DropdownMenuSeparator className="profile-menu-separator" />
                   <DropdownMenuItem 
                     onClick={() => logout.mutate()}
                     disabled={logout.isPending}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="logout-menu-item"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
+                    <LogOut className="logout-icon" />
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -267,10 +294,10 @@ export default function ReportWizard() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="wizard-main-content">
+        <div className="wizard-layout-grid">
           {/* Step Navigation */}
-          <div className="lg:col-span-1">
+          <div className="wizard-sidebar-column">
             <StepNavigation
               currentStep={currentStep}
               completedSteps={completedSteps}
@@ -281,8 +308,8 @@ export default function ReportWizard() {
           </div>
 
           {/* Step Content */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-2xl shadow-lg border-2 border-border p-8">
+          <div className="wizard-content-column">
+            <div className="wizard-step-container">
               {renderCurrentStep()}
             </div>
           </div>

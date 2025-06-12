@@ -23,12 +23,12 @@ export function StepNavigation({
         <div className="p-2 bg-primary/15 rounded-xl border border-primary/20">
           <Clock className="h-5 w-5 text-primary" />
         </div>
-        <h2 className="text-xl font-bold text-foreground">Report Progress</h2>
+        <h2 className="text-xl font-bold text-slate-900">Report Progress</h2>
       </div>
       
       {/* Progress Bar */}
       <div className="mb-8">
-        <div className="flex justify-between text-sm font-medium text-muted-foreground mb-3">
+        <div className="flex justify-between text-sm font-medium text-grey-600 mb-3">
           <span>Step {currentStep} of {FORM_STEPS.length}</span>
           <span className="text-primary font-semibold">{Math.round(progress)}% Complete</span>
         </div>

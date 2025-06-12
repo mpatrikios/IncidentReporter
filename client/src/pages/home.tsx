@@ -167,7 +167,7 @@ export default function Home() {
         <div className="space-y-6">
           <div className="text-center">
             <h2 className="text-3xl font-bold mb-2">Quick Actions</h2>
-            <p className="text-muted-foreground text-lg">Explore additional features and resources</p>
+            <p className="text-grey-600 text-lg">Explore additional features and resources</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -179,7 +179,7 @@ export default function Home() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-2">Report Templates</h3>
-                    <p className="text-muted-foreground mb-4">
+                    <p className="text-grey-600 mb-4">
                       Browse available report templates and engineering standards
                     </p>
                     <Button variant="outline" size="sm" disabled className="hover:bg-blue-600 hover:text-white">
@@ -198,7 +198,7 @@ export default function Home() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-2">Help & Documentation</h3>
-                    <p className="text-muted-foreground mb-4">
+                    <p className="text-grey-600 mb-4">
                       Learn how to use the report wizard and platform features
                     </p>
                     <Button variant="outline" size="sm" disabled className="hover:bg-orange-600 hover:text-white">
