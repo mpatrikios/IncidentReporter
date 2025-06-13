@@ -241,6 +241,7 @@ export default function ReportWizard() {
             reportId={reportId}
             formData={report?.formData || {} as Record<string, any>}
             initialTitle={report?.title || ""}
+            steps={steps}
           />
         );
       default:

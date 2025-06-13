@@ -13,7 +13,7 @@ export default function Home() {
   const { user } = useAuth();
   const logout = useLogout();
   const [, setLocation] = useLocation();
-  const [reports, setReports] = useState([]);
+  const [reports, setReports] = useState<any[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(true);
 
   const handleLogout = () => {
@@ -34,8 +34,9 @@ export default function Home() {
       try {
         setIsLoadingReports(true);
         const response = await apiRequest("GET", "/api/reports");
+        const data = await response.json();
         // Ensure we always have an array
-        const reportsData = Array.isArray(response) ? response : [];
+        const reportsData = Array.isArray(data) ? data : [];
         setReports(reportsData);
       } catch (error) {
         console.error("Failed to fetch reports:", error);

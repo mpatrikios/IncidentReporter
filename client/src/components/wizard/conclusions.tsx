@@ -21,6 +21,7 @@ interface ConclusionsProps {
   reportId?: number | null;
   formData?: any;
   initialTitle?: string;
+  steps?: any[];
 }
 
 export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps>(({ 
@@ -28,8 +29,9 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
   onSubmit, 
   onPrevious,
   reportId,
-  formData,
-  initialTitle 
+  formData: _formData,
+  initialTitle,
+  steps
 }, ref) => {
   const [reportTitle, setReportTitle] = useState(initialTitle || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -67,19 +69,46 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
   }, [initialData, form]);
 
   const handleGenerateDoc = async () => {
+    console.log('DEBUG: Starting Google Doc generation for report ID:', reportId);
     setIsGeneratingDoc(true);
     try {
-      await apiRequest("POST", `/api/reports/${reportId}/generate-doc`);
+      console.log('DEBUG: Making API request to generate doc...');
+      const response = await apiRequest("POST", `/api/reports/${reportId}/generate-doc`);
+      console.log('DEBUG: Raw API response:', response);
+      
+      const data = await response.json();
+      console.log('DEBUG: Parsed response data:', data);
+      
+      if (data.documentUrl) {
+        console.log('DEBUG: Opening document URL:', data.documentUrl);
+        window.open(data.documentUrl, '_blank');
+      } else {
+        console.log('DEBUG: No documentUrl in response');
+      }
+      
       toast({
         title: "Document Generated",
         description: "Google Doc has been generated successfully.",
       });
-    } catch (error) {
-      toast({
-        title: "Generation Failed",
-        description: "Failed to generate Google Doc. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      console.error('DEBUG: Error during doc generation:', error);
+      if (error.message?.includes('not authenticated')) {
+        toast({
+          title: "Authentication Required",
+          description: "Please authenticate with Google first.",
+          variant: "destructive",
+        });
+        // Optionally redirect to auth  
+        if (error.authUrl) {
+          window.open(error.authUrl, '_blank');
+        }
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: error.message || "Failed to generate Google Doc. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsGeneratingDoc(false);
     }
@@ -116,15 +145,56 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
     }
   };
 
+  // Check completion based on steps data instead of formData
+  const getStepData = (stepNumber: number) => {
+    return steps?.find(s => s.stepNumber === stepNumber)?.data || {};
+  };
+
+  const hasRequiredData = (stepNumber: number, requiredFields: string[]) => {
+    const stepData = getStepData(stepNumber);
+    return requiredFields.every(field => {
+      const value = stepData[field];
+      return value && value.toString().trim().length > 0;
+    });
+  };
+
+  const hasAnyData = (stepNumber: number, fields: string[]) => {
+    const stepData = getStepData(stepNumber);
+    return fields.some(field => {
+      const value = stepData[field];
+      return value && value.toString().trim().length > 0;
+    });
+  };
+
   const completedSections = [
-    { name: "Project Information", completed: !!formData?.projectInformation },
-    { name: "Assignment Scope", completed: !!formData?.assignmentScope },
-    { name: "Building & Site Observations", completed: !!formData?.buildingAndSite },
-    { name: "Research", completed: !!formData?.research },
-    { name: "Discussion & Analysis", completed: !!formData?.discussionAndAnalysis },
+    { 
+      name: "Project Information", 
+      completed: hasRequiredData(1, ['insuredName', 'insuredAddress', 'fileNumber', 'claimNumber', 'clientCompany', 'clientContactName', 'clientEmail', 'dateOfLoss', 'siteVisitDate', 'engineerName']) 
+    },
+    { 
+      name: "Assignment Scope", 
+      completed: hasRequiredData(2, ['assignmentScope']) 
+    },
+    { 
+      name: "Building & Site Observations", 
+      completed: hasRequiredData(3, ['buildingDescription']) 
+    },
+    { 
+      name: "Research", 
+      completed: hasAnyData(4, ['weatherDataSummary', 'corelogicDataSummary']) 
+    },
+    { 
+      name: "Discussion & Analysis", 
+      completed: hasRequiredData(5, ['discussionAndAnalysis']) 
+    },
   ];
 
   const allSectionsComplete = completedSections.every(section => section.completed);
+
+  // Debug logging
+  console.log("Steps data:", steps);
+  console.log("Completed sections:", completedSections);
+  console.log("All sections complete:", allSectionsComplete);
 
   return (
     <div className="space-y-8">

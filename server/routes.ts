@@ -350,30 +350,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate Google Doc (mock implementation)
+  // Generate Google Doc from template
   app.post("/api/reports/:id/generate-doc", async (req, res) => {
     try {
       const reportId = parseInt(req.params.id);
+      
       const report = await storage.getReport(reportId);
       
       if (!report) {
         return res.status(404).json({ message: "Report not found" });
       }
 
-      // Mock Google Doc generation
-      const mockGoogleDocId = `doc_${Date.now()}`;
+      // Import the Google Docs service
+      const { googleDocsService } = await import('./services/googleDocsService.js');
       
+      // Check if authenticated
+      const isAuthenticated = await googleDocsService.isAuthenticated();
+      if (!isAuthenticated) {
+        return res.status(401).json({ 
+          message: "Google API not authenticated", 
+          authUrl: googleDocsService.getAuthUrl() 
+        });
+      }
+
+      // Access report data from formData field or compile from steps
+      const formData = report.formData as any;
+      let reportData;
+      
+      if (!formData || Object.keys(formData).length === 0) {
+        // Compile data from individual steps
+        const steps = await storage.getFormSteps(reportId);
+        const compiledData: any = {};
+        
+        steps.forEach(step => {
+          switch (step.stepNumber) {
+            case 1:
+              compiledData.projectInformation = step.data;
+              break;
+            case 2:
+              compiledData.assignmentScope = step.data;
+              break;
+            case 3:
+              compiledData.buildingObservations = step.data;
+              break;
+            case 4:
+              compiledData.research = step.data;
+              break;
+            case 5:
+              compiledData.discussionAnalysis = step.data;
+              break;
+            case 6:
+              compiledData.conclusions = step.data;
+              break;
+          }
+        });
+        
+        reportData = compiledData;
+      } else {
+        reportData = {
+          projectInformation: formData?.projectInformation,
+          assignmentScope: formData?.assignmentScope,
+          buildingObservations: formData?.buildingAndSite,
+          research: formData?.research,
+          discussionAnalysis: formData?.discussionAndAnalysis,
+          conclusions: formData?.conclusions
+        };
+      }
+
+      // Generate report title
+      const reportTitle = `Civil Engineering Report - ${formData?.projectInformation?.insuredName || 'Report'} - ${new Date().toLocaleDateString()}`;
+
+      // Generate from configured template
+      const googleDocId = await googleDocsService.generateFromTemplate(reportData, reportTitle);
+      
+      if (!googleDocId) {
+        throw new Error('Failed to generate document');
+      }
+
       const updatedReport = await storage.updateReport(reportId, {
-        googleDocId: mockGoogleDocId,
+        googleDocId: googleDocId,
       });
 
       res.json({ 
         message: "Google Doc generated successfully", 
-        googleDocId: mockGoogleDocId,
+        googleDocId: googleDocId,
+        documentUrl: `https://docs.google.com/document/d/${googleDocId}/edit`,
         report: updatedReport 
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to generate Google Doc" });
+      console.error('Error generating Google Doc:', error);
+      res.status(500).json({ 
+        message: "Failed to generate Google Doc", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Google OAuth endpoints
+  app.get("/auth/google", async (req, res) => {
+    try {
+      const { googleDocsService } = await import('./services/googleDocsService.js');
+      const authUrl = googleDocsService.getAuthUrl();
+      res.redirect(authUrl);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to initialize Google auth" });
+    }
+  });
+
+  app.get("/auth/google/callback", async (req, res) => {
+    try {
+      const { code } = req.query;
+      
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ message: "Authorization code not provided" });
+      }
+
+      const { googleDocsService } = await import('./services/googleDocsService.js');
+      await googleDocsService.setAuthTokens(code);
+      
+      // Redirect back to the application with success
+      res.redirect("/?auth=success");
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      res.redirect("/?auth=error");
+    }
+  });
+
+  // Check Google authentication status
+  app.get("/api/google/auth-status", async (req, res) => {
+    try {
+      const { googleDocsService } = await import('./services/googleDocsService.js');
+      const isAuthenticated = await googleDocsService.isAuthenticated();
+      
+      res.json({ 
+        authenticated: isAuthenticated,
+        authUrl: isAuthenticated ? null : googleDocsService.getAuthUrl()
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check auth status" });
     }
   });
 
