@@ -4,12 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { FileText, Plus, User, LogOut, Zap, TrendingUp, BookOpen, HelpCircle, ChevronDown } from "lucide-react";
+import { FileText, Plus, User, LogOut, Zap, TrendingUp, BookOpen, HelpCircle, ChevronDown, Edit, Calendar } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const { user } = useAuth();
   const logout = useLogout();
   const [, setLocation] = useLocation();
+  const [reports, setReports] = useState([]);
+  const [isLoadingReports, setIsLoadingReports] = useState(true);
 
   const handleLogout = () => {
     logout.mutate();
@@ -17,6 +22,51 @@ export default function Home() {
 
   const handleCreateReport = () => {
     setLocation("/report-wizard");
+  };
+
+  const handleEditReport = (reportId: number) => {
+    setLocation(`/report-wizard?edit=${reportId}`);
+  };
+
+  // Fetch user reports
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setIsLoadingReports(true);
+        const response = await apiRequest("GET", "/api/reports");
+        // Ensure we always have an array
+        const reportsData = Array.isArray(response) ? response : [];
+        setReports(reportsData);
+      } catch (error) {
+        console.error("Failed to fetch reports:", error);
+        setReports([]);
+      } finally {
+        setIsLoadingReports(false);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-700 border-green-200">Completed</Badge>;
+      case 'draft':
+        return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">Draft</Badge>;
+      case 'in_review':
+        return <Badge className="bg-blue-100 text-blue-700 border-blue-200">In Review</Badge>;
+      default:
+        return <Badge className="bg-grey-100 text-grey-700 border-grey-200">{status}</Badge>;
+    }
   };
 
   return (
@@ -133,12 +183,16 @@ export default function Home() {
               </div>
               <CardTitle className="text-xl text-grey-900">My Reports</CardTitle>
               <CardDescription className="text-base text-grey-600">
-                View and manage your submitted engineering reports
+                View and manage your saved engineering reports
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full border-2 border-grey-300 text-grey-700 hover:bg-grey-100" disabled>
-                Coming Soon
+              <Button 
+                variant="outline" 
+                className="w-full border-2 border-grey-300 text-grey-700 hover:bg-grey-100"
+                onClick={() => document.getElementById('my-reports-section')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                View My Reports ({reports.length})
               </Button>
             </CardContent>
           </Card>
@@ -160,6 +214,78 @@ export default function Home() {
                 </Button>
               </CardContent>
             </Card>
+          )}
+        </div>
+
+        {/* My Reports Section */}
+        <div id="my-reports-section" className="space-y-6 mb-16">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold mb-2">My Reports</h2>
+            <p className="text-grey-600 text-lg">Manage your saved engineering reports</p>
+          </div>
+
+          {isLoadingReports ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
+              <span className="ml-2 text-grey-600">Loading reports...</span>
+            </div>
+          ) : reports.length === 0 ? (
+            <Card className="bg-grey-50 border-2 border-grey-200">
+              <CardContent className="text-center py-12">
+                <FileText className="h-12 w-12 text-grey-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-grey-900 mb-2">No Reports Yet</h3>
+                <p className="text-grey-600 mb-4">Create your first engineering report to get started.</p>
+                <Button onClick={handleCreateReport} className="bg-blue-700 hover:bg-blue-800 text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Report
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.isArray(reports) && reports.map((report: any) => (
+                <Card key={report.id} className="bg-white border-2 border-grey-200 shadow-lg hover:shadow-xl transition-all duration-200">
+                  <CardHeader className="pb-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <CardTitle className="text-lg text-grey-900 line-clamp-2">
+                        {report.title || `Report ${report.projectId}`}
+                      </CardTitle>
+                      {getStatusBadge(report.status)}
+                    </div>
+                    <CardDescription className="text-sm text-grey-600">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Calendar className="h-3 w-3" />
+                        Created {formatDate(report.createdAt)}
+                      </div>
+                      <div className="text-xs text-grey-500">
+                        Project ID: {report.projectId}
+                      </div>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleEditReport(report.id)}
+                        className="flex-1 bg-blue-700 hover:bg-blue-800 text-white"
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="flex-1 border-grey-300 text-grey-700 hover:bg-grey-100"
+                        disabled
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
 

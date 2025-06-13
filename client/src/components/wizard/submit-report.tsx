@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, FileText, Send, Clock } from "lucide-react";
+import { CheckCircle, FileText, Save, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -12,20 +11,15 @@ interface SubmitReportProps {
   reportId: number;
   onPrevious: () => void;
   formData: any;
+  initialTitle?: string;
 }
 
-export function SubmitReportStep({ reportId, onPrevious, formData }: SubmitReportProps) {
-  const [selectedEngineer, setSelectedEngineer] = useState("");
-  const [reviewNotes, setReviewNotes] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle }: SubmitReportProps) {
+  const [reportTitle, setReportTitle] = useState(initialTitle || "");
+  const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const { toast } = useToast();
 
-  const engineers = [
-    { id: "1", name: "John Doe, P.E.", specialty: "Structural Engineering" },
-    { id: "2", name: "Jane Smith, P.E.", specialty: "Geotechnical Engineering" },
-    { id: "3", name: "Mike Johnson, P.E.", specialty: "Transportation Engineering" },
-  ];
 
   const handleGenerateDoc = async () => {
     setIsGeneratingDoc(true);
@@ -46,37 +40,36 @@ export function SubmitReportStep({ reportId, onPrevious, formData }: SubmitRepor
     }
   };
 
-  const handleSubmit = async () => {
-    if (!selectedEngineer) {
+  const handleSaveReport = async () => {
+    if (!reportTitle.trim()) {
       toast({
-        title: "Engineer Required",
-        description: "Please select an engineer for review.",
+        title: "Title Required",
+        description: "Please enter a title for your report.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSaving(true);
     try {
-      await apiRequest("POST", `/api/reports/${reportId}/submit`, {
-        assignedEngineer: parseInt(selectedEngineer),
-        reviewNotes,
+      await apiRequest("POST", `/api/reports/${reportId}/save`, {
+        title: reportTitle.trim(),
       });
       
       toast({
-        title: "Report Submitted",
-        description: "Your report has been submitted for engineer review.",
+        title: "Report Saved",
+        description: "Your report has been saved successfully.",
       });
       
-      // In a real app, this would redirect to a confirmation page
+      // In a real app, this would redirect to dashboard
     } catch (error) {
       toast({
-        title: "Submission Failed", 
-        description: "Failed to submit report. Please try again.",
+        title: "Save Failed", 
+        description: "Failed to save report. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
@@ -170,7 +163,7 @@ export function SubmitReportStep({ reportId, onPrevious, formData }: SubmitRepor
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-600">
-            Generate a Google Doc version of your report before submitting for review.
+            Generate a Google Doc version of your report for easy sharing and printing.
           </p>
           <Button
             onClick={handleGenerateDoc}
@@ -193,48 +186,29 @@ export function SubmitReportStep({ reportId, onPrevious, formData }: SubmitRepor
         </CardContent>
       </Card>
 
-      {/* Engineer Assignment */}
+      {/* Report Title */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center">
-            <Send className="mr-2 h-5 w-5 text-primary-600" />
-            Engineer Assignment
+            <Save className="mr-2 h-5 w-5 text-primary-600" />
+            Save Report
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="engineer" className="text-sm font-medium text-slate-700">
-              Assign to Engineer <span className="text-red-500">*</span>
+            <Label htmlFor="title" className="text-sm font-medium text-slate-700">
+              Report Title <span className="text-red-500">*</span>
             </Label>
-            <Select value={selectedEngineer} onValueChange={setSelectedEngineer}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select an engineer for review..." />
-              </SelectTrigger>
-              <SelectContent>
-                {engineers.map((engineer) => (
-                  <SelectItem key={engineer.id} value={engineer.id}>
-                    <div>
-                      <div className="font-medium">{engineer.name}</div>
-                      <div className="text-sm text-slate-600">{engineer.specialty}</div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="notes" className="text-sm font-medium text-slate-700">
-              Review Notes (Optional)
-            </Label>
-            <Textarea
-              id="notes"
-              value={reviewNotes}
-              onChange={(e) => setReviewNotes(e.target.value)}
-              placeholder="Add any specific notes or requirements for the reviewing engineer..."
-              rows={3}
+            <Input
+              id="title"
+              value={reportTitle}
+              onChange={(e) => setReportTitle(e.target.value)}
+              placeholder="Enter a descriptive title for your report..."
               className="mt-1"
             />
+            <p className="text-xs text-slate-500 mt-1">
+              This title will be used to identify your report on the dashboard.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -252,19 +226,19 @@ export function SubmitReportStep({ reportId, onPrevious, formData }: SubmitRepor
         </Button>
         
         <Button
-          onClick={handleSubmit}
-          disabled={!allSectionsComplete || !selectedEngineer || isSubmitting}
+          onClick={handleSaveReport}
+          disabled={!allSectionsComplete || !reportTitle.trim() || isSaving}
           className="flex items-center px-8 py-3 bg-primary-600 hover:bg-primary-700"
         >
-          {isSubmitting ? (
+          {isSaving ? (
             <>
               <Clock className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
+              Saving...
             </>
           ) : (
             <>
-              <Send className="mr-2 h-4 w-4" />
-              Submit Report
+              <Save className="mr-2 h-4 w-4" />
+              Save Report
             </>
           )}
         </Button>
@@ -276,14 +250,14 @@ export function SubmitReportStep({ reportId, onPrevious, formData }: SubmitRepor
           <div className="flex items-start">
             <i className="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
             <div>
-              <h3 className="text-sm font-semibold text-blue-900 mb-2">What happens next?</h3>
+              <h3 className="text-sm font-semibold text-blue-900 mb-2">What happens after saving?</h3>
               <div className="text-sm text-blue-800 space-y-2">
-                <p>After submitting your report:</p>
+                <p>After saving your report:</p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>The assigned engineer will receive an email notification</li>
-                  <li>They will review your report and provide feedback</li>
-                  <li>You'll be notified once the review is complete</li>
-                  <li>Any required revisions will be communicated back to you</li>
+                  <li>Your report will be saved to your dashboard</li>
+                  <li>You can view and edit it anytime from "My Reports"</li>
+                  <li>Generate Google Docs for easy sharing</li>
+                  <li>Your work is automatically preserved</li>
                 </ul>
               </div>
             </div>

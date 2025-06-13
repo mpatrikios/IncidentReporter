@@ -41,62 +41,61 @@ export const formSteps = pgTable("form_steps", {
   data: jsonb("data"),
 });
 
-// Form data schemas
+// Form data schemas based on Civil Engineering Report template
 export const projectInformationSchema = z.object({
-  projectName: z.string().min(1, "Project name is required"),
-  projectLocation: z.string().min(1, "Project location is required"),
-  clientName: z.string().min(1, "Client name is required"),
-  projectDescription: z.string().min(1, "Project description is required"),
-  projectManager: z.string().min(1, "Project manager is required"),
-  startDate: z.string().min(1, "Start date is required"),
-  expectedCompletionDate: z.string().min(1, "Expected completion date is required"),
+  insuredName: z.string().min(1, "Insured name is required"),
+  insuredAddress: z.string().min(1, "Insured address is required"),
+  fileNumber: z.string().min(1, "File number is required"),
+  claimNumber: z.string().min(1, "Claim number is required"),
+  clientCompany: z.string().min(1, "Client company is required"),
+  clientContactName: z.string().min(1, "Client contact name is required"),
+  clientEmail: z.string().email("Valid email is required"),
+  dateOfLoss: z.string().min(1, "Date of loss is required"),
+  siteVisitDate: z.string().min(1, "Site visit date is required"),
+  engineerName: z.string().min(1, "Engineer name is required"),
+  technicalReviewerName: z.string().optional(),
 });
 
-export const siteAnalysisSchema = z.object({
-  siteArea: z.number().min(0, "Site area must be positive"),
-  soilType: z.string().min(1, "Soil type is required"),
-  groundwaterLevel: z.number().optional(),
-  existingStructures: z.string().optional(),
-  accessibilityNotes: z.string().optional(),
-  environmentalFactors: z.array(z.string()).optional(),
+export const assignmentScopeSchema = z.object({
+  assignmentScope: z.string().min(1, "Assignment scope is required"),
+  siteContact: z.string().optional(),
+  interviewees: z.string().optional(),
+  documentsReviewed: z.string().optional(),
+  weatherResearchSummary: z.string().optional(),
 });
 
-export const designSpecificationsSchema = z.object({
-  designType: z.enum(["structural", "transportation", "water", "geotechnical"]),
-  deadLoad: z.number().min(0, "Dead load must be positive").optional(),
-  liveLoad: z.number().min(0, "Live load must be positive").optional(),
-  material: z.string().optional(),
-  concreteStrength: z.string().optional(),
-  rebarGrade: z.string().optional(),
-  slump: z.number().optional(),
-  designCodes: z.array(z.string()).optional(),
-  seismicCategory: z.string().optional(),
-  windSpeed: z.number().optional(),
-  additionalNotes: z.string().optional(),
+export const buildingAndSiteSchema = z.object({
+  structureAge: z.string().optional(),
+  squareFootage: z.string().optional(),
+  roofType: z.string().optional(),
+  ventilationDescription: z.string().optional(),
+  buildingDescription: z.string().min(1, "Building description is required"),
+  exteriorObservations: z.string().optional(),
+  interiorObservations: z.string().optional(),
+  crawlspaceObservations: z.string().optional(),
+  siteObservations: z.string().optional(),
 });
 
-export const calculationsSchema = z.object({
-  calculationType: z.array(z.string()),
-  loadCalculations: z.string().optional(),
-  structuralAnalysis: z.string().optional(),
-  safetyFactors: z.number().optional(),
-  codeCompliance: z.string().optional(),
+export const researchSchema = z.object({
+  weatherDataSummary: z.string().optional(),
+  corelogicDataSummary: z.string().optional(),
 });
 
-export const reviewAttachmentsSchema = z.object({
-  drawings: z.array(z.string()).optional(),
-  specifications: z.array(z.string()).optional(),
-  calculations: z.array(z.string()).optional(),
-  photos: z.array(z.string()).optional(),
-  additionalDocuments: z.array(z.string()).optional(),
+export const discussionAndAnalysisSchema = z.object({
+  discussionAndAnalysis: z.string().min(1, "Discussion and analysis is required"),
+});
+
+export const conclusionsSchema = z.object({
+  conclusions: z.string().min(1, "Conclusions are required"),
 });
 
 export const completeFormDataSchema = z.object({
   projectInformation: projectInformationSchema,
-  siteAnalysis: siteAnalysisSchema,
-  designSpecifications: designSpecificationsSchema,
-  calculations: calculationsSchema,
-  reviewAttachments: reviewAttachmentsSchema,
+  assignmentScope: assignmentScopeSchema,
+  buildingAndSite: buildingAndSiteSchema,
+  research: researchSchema,
+  discussionAndAnalysis: discussionAndAnalysisSchema,
+  conclusions: conclusionsSchema,
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -128,8 +127,15 @@ export type InsertFormStep = z.infer<typeof insertFormStepSchema>;
 export type FormStep = typeof formSteps.$inferSelect;
 
 export type ProjectInformation = z.infer<typeof projectInformationSchema>;
-export type SiteAnalysis = z.infer<typeof siteAnalysisSchema>;
-export type DesignSpecifications = z.infer<typeof designSpecificationsSchema>;
-export type Calculations = z.infer<typeof calculationsSchema>;
-export type ReviewAttachments = z.infer<typeof reviewAttachmentsSchema>;
+export type AssignmentScope = z.infer<typeof assignmentScopeSchema>;
+export type BuildingAndSite = z.infer<typeof buildingAndSiteSchema>;
+export type Research = z.infer<typeof researchSchema>;
+export type DiscussionAndAnalysis = z.infer<typeof discussionAndAnalysisSchema>;
+export type Conclusions = z.infer<typeof conclusionsSchema>;
 export type CompleteFormData = z.infer<typeof completeFormDataSchema>;
+
+// Legacy types for backward compatibility
+export type SiteAnalysis = AssignmentScope;
+export type DesignSpecifications = BuildingAndSite;
+export type Calculations = Research;
+export type ReviewAttachments = Conclusions;

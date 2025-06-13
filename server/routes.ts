@@ -4,10 +4,11 @@ import { storage } from "./storage";
 import { 
   insertFormStepSchema,
   projectInformationSchema,
-  siteAnalysisSchema,
-  designSpecificationsSchema,
-  calculationsSchema,
-  reviewAttachmentsSchema
+  assignmentScopeSchema,
+  buildingAndSiteSchema,
+  researchSchema,
+  discussionAndAnalysisSchema,
+  conclusionsSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -110,11 +111,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Initialize form steps
       const stepNames = [
         "Project Information",
-        "Site Analysis", 
-        "Design Specifications",
-        "Calculations",
-        "Review & Attachments",
-        "Submit Report"
+        "Assignment Scope", 
+        "Building & Site Observations",
+        "Research",
+        "Discussion & Analysis",
+        "Conclusions"
       ];
 
       for (let i = 0; i < stepNames.length; i++) {
@@ -200,16 +201,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             validatedData = projectInformationSchema.parse(data);
             break;
           case 2:
-            validatedData = siteAnalysisSchema.parse(data);
+            validatedData = assignmentScopeSchema.parse(data);
             break;
           case 3:
-            validatedData = designSpecificationsSchema.parse(data);
+            validatedData = buildingAndSiteSchema.parse(data);
             break;
           case 4:
-            validatedData = calculationsSchema.parse(data);
+            validatedData = researchSchema.parse(data);
             break;
           case 5:
-            validatedData = reviewAttachmentsSchema.parse(data);
+            validatedData = discussionAndAnalysisSchema.parse(data);
+            break;
+          case 6:
+            validatedData = conclusionsSchema.parse(data);
             break;
         }
       } else {
@@ -238,7 +242,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Submit report for review
+  // Save completed report
+  app.post("/api/reports/:id/save", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const { title } = req.body;
+      
+      if (!title || !title.trim()) {
+        return res.status(400).json({ message: "Report title is required" });
+      }
+
+      // Get all form steps to compile complete form data
+      const steps = await storage.getFormSteps(reportId);
+      const formData: any = {};
+      
+      steps.forEach(step => {
+        switch (step.stepNumber) {
+          case 1:
+            formData.projectInformation = step.data;
+            break;
+          case 2:
+            formData.assignmentScope = step.data;
+            break;
+          case 3:
+            formData.buildingAndSite = step.data;
+            break;
+          case 4:
+            formData.research = step.data;
+            break;
+          case 5:
+            formData.discussionAndAnalysis = step.data;
+            break;
+          case 6:
+            formData.conclusions = step.data;
+            break;
+        }
+      });
+
+      // Update report status and form data
+      const report = await storage.updateReport(reportId, {
+        title: title.trim(),
+        status: "completed",
+        formData: formData,
+      });
+
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      res.json({ message: "Report saved successfully", report });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to save report" });
+    }
+  });
+
+  // Submit report for review (kept for backward compatibility)
   app.post("/api/reports/:id/submit", async (req, res) => {
     try {
       const reportId = parseInt(req.params.id);
@@ -253,16 +311,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             formData.projectInformation = step.data;
             break;
           case 2:
-            formData.siteAnalysis = step.data;
+            formData.assignmentScope = step.data;
             break;
           case 3:
-            formData.designSpecifications = step.data;
+            formData.buildingAndSite = step.data;
             break;
           case 4:
-            formData.calculations = step.data;
+            formData.research = step.data;
             break;
           case 5:
-            formData.reviewAttachments = step.data;
+            formData.discussionAndAnalysis = step.data;
+            break;
+          case 6:
+            formData.conclusions = step.data;
             break;
         }
       });

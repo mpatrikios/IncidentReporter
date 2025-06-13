@@ -11,43 +11,43 @@ export const FORM_STEPS: FormStepConfig[] = [
     number: 1,
     name: "projectInformation",
     title: "Project Information",
-    description: "Basic project details and client information",
+    description: "Insured details, file numbers, and client contact information",
     icon: "fas fa-clipboard-list"
   },
   {
     number: 2,
-    name: "siteAnalysis", 
-    title: "Site Analysis",
-    description: "Site conditions and environmental factors",
-    icon: "fas fa-map-marked-alt"
+    name: "assignmentScope", 
+    title: "Assignment Scope",
+    description: "Assignment details, site contacts, and document review",
+    icon: "fas fa-tasks"
   },
   {
     number: 3,
-    name: "designSpecifications",
-    title: "Design Specifications", 
-    description: "Technical requirements and design parameters",
-    icon: "fas fa-drafting-compass"
+    name: "buildingAndSite",
+    title: "Building & Site Observations", 
+    description: "Building description and detailed site observations",
+    icon: "fas fa-building"
   },
   {
     number: 4,
-    name: "calculations",
-    title: "Calculations",
-    description: "Engineering calculations and analysis",
-    icon: "fas fa-calculator"
+    name: "research",
+    title: "Research",
+    description: "Weather data and CoreLogic research findings",
+    icon: "fas fa-search"
   },
   {
     number: 5,
-    name: "reviewAttachments",
-    title: "Review & Attachments",
-    description: "Supporting documents and final review",
-    icon: "fas fa-paperclip"
+    name: "discussionAndAnalysis",
+    title: "Discussion & Analysis",
+    description: "Technical analysis and engineering discussion",
+    icon: "fas fa-comments"
   },
   {
     number: 6,
-    name: "submitReport",
-    title: "Submit Report",
-    description: "Final submission and engineer assignment",
-    icon: "fas fa-paper-plane"
+    name: "conclusions",
+    title: "Conclusions",
+    description: "Final conclusions and report completion",
+    icon: "fas fa-check-circle"
   }
 ];
 

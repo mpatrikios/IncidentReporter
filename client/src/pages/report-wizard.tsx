@@ -7,36 +7,43 @@ import { useFormPersistence } from "@/hooks/use-form-persistence";
 import { FORM_STEPS } from "@/lib/types";
 import { Zap, User, Bell, Home, ChevronDown, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import type { StepRef } from "@/lib/types";
 import type { ProjectInformation } from "@shared/schema";
-import type { SiteAnalysis } from "@shared/schema";
-import type { DesignSpecifications } from "@shared/schema";
-import type { Calculations } from "@shared/schema";
-import type { ReviewAttachments } from "@shared/schema";
+import type { AssignmentScope } from "@shared/schema";
+import type { BuildingAndSite } from "@shared/schema";
+import type { Research } from "@shared/schema";
+import type { DiscussionAndAnalysis } from "@shared/schema";
+import type { Conclusions } from "@shared/schema";
 import type { FormStep } from "@shared/schema";
 import type { Report } from "@shared/schema";
 
 // Step Components
 import { StepNavigation } from "@/components/wizard/step-navigation";
 import { ProjectInformationStep } from "@/components/wizard/project-information";
-import { SiteAnalysisStep } from "@/components/wizard/site-analysis";
-import { DesignSpecificationsStep } from "@/components/wizard/design-specifications";
-import { CalculationsStep } from "@/components/wizard/calculations";
-import { ReviewAttachmentsStep } from "@/components/wizard/review-attachments";
+import { AssignmentScopeStep } from "@/components/wizard/assignment-scope";
+import { BuildingAndSiteStep } from "@/components/wizard/building-and-site";
+import { ResearchStep } from "@/components/wizard/research";
+import { DiscussionAndAnalysisStep } from "@/components/wizard/discussion-and-analysis";
+import { ConclusionsStep } from "@/components/wizard/conclusions";
 import { SubmitReportStep } from "@/components/wizard/submit-report";
 
 export default function ReportWizard() {
   const { id } = useParams<{ id: string }>();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const { toast } = useToast();
   const { user } = useAuth();
   const logout = useLogout();
   const stepRef = useRef<StepRef<any>>(null);
   
-  const reportId = id ? parseInt(id) : null;
+  // Handle both direct report ID and edit parameter
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const editReportId = urlParams.get('edit');
+  const reportId = editReportId ? parseInt(editReportId) : (id ? parseInt(id) : null);
+  
   const { saveFormData, formatLastSaved } = useFormPersistence(reportId);
 
   // Fetch report data
@@ -186,8 +193,8 @@ export default function ReportWizard() {
         );
       case 2:
         return (
-          <SiteAnalysisStep
-            ref={stepRef as React.RefObject<StepRef<SiteAnalysis>>}
+          <AssignmentScopeStep
+            ref={stepRef as React.RefObject<StepRef<AssignmentScope>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(2, data)}
             onPrevious={() => goToStep(1)}
@@ -196,8 +203,8 @@ export default function ReportWizard() {
         );
       case 3:
         return (
-          <DesignSpecificationsStep
-            ref={stepRef as React.RefObject<StepRef<DesignSpecifications>>}
+          <BuildingAndSiteStep
+            ref={stepRef as React.RefObject<StepRef<BuildingAndSite>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(3, data)}
             onPrevious={() => goToStep(2)}
@@ -206,8 +213,8 @@ export default function ReportWizard() {
         );
       case 4:
         return (
-          <CalculationsStep
-            ref={stepRef as React.RefObject<StepRef<Calculations>>}
+          <ResearchStep
+            ref={stepRef as React.RefObject<StepRef<Research>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(4, data)}
             onPrevious={() => goToStep(3)}
@@ -216,8 +223,8 @@ export default function ReportWizard() {
         );
       case 5:
         return (
-          <ReviewAttachmentsStep
-            ref={stepRef as React.RefObject<StepRef<ReviewAttachments>>}
+          <DiscussionAndAnalysisStep
+            ref={stepRef as React.RefObject<StepRef<DiscussionAndAnalysis>>}
             initialData={stepData}
             onSubmit={(data) => handleStepSubmit(5, data)}
             onPrevious={() => goToStep(4)}
@@ -226,10 +233,14 @@ export default function ReportWizard() {
         );
       case 6:
         return (
-          <SubmitReportStep
-            reportId={reportId}
+          <ConclusionsStep
+            ref={stepRef as React.RefObject<StepRef<Conclusions>>}
+            initialData={stepData}
+            onSubmit={(data) => handleStepSubmit(6, data)}
             onPrevious={() => goToStep(5)}
+            reportId={reportId}
             formData={report?.formData || {} as Record<string, any>}
+            initialTitle={report?.title || ""}
           />
         );
       default:
@@ -238,66 +249,80 @@ export default function ReportWizard() {
   };
 
   return (
-    <div className="report-wizard-container">
-      {/* Modern Header */}
-      <header className="wizard-header-sticky">
-        <div className="header-content-wrapper">
-          <div className="header-nav-bar">
-            <div className="brand-section">
-              <div className="brand-icon-container">
-                <Zap className="brand-icon" />
+    <div className="min-h-screen">
+      {/* Consistent Header from Home Page */}
+      <div className="bg-white border-b-2 border-grey-200 shadow-md sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-100 rounded-xl border-2 border-blue-200">
+                <Zap className="h-7 w-7 text-blue-700" />
               </div>
-              <div className="brand-text-container">
-                <span className="brand-title">Engineering Suite</span>
-                <div className="brand-subtitle">Report Builder</div>
+              <div>
+                <h1 className="text-2xl font-bold text-blue-700">
+                  Engineering Suite
+                </h1>
+                <div className="text-xs text-grey-600 font-medium">
+                  Civil Engineering Documentation Platform
+                </div>
               </div>
             </div>
-            <div className="header-actions">
+            
+            <div className="flex items-center gap-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setLocation("/")}
-                className="dashboard-nav-button"
+                className="flex items-center gap-2 border-2 border-grey-300 text-grey-700 hover:bg-grey-100"
               >
-                <Home className="nav-button-icon" />
+                <Home className="h-4 w-4" />
                 Dashboard
               </Button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="user-profile-trigger">
-                    <div className="profile-avatar-container">
-                      <User className="profile-avatar-icon" />
+                  <Button variant="ghost" className="flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200 hover:bg-grey-100 hover:border-grey-300">
+                    <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-200">
+                      <User className="h-4 w-4 text-blue-600" />
                     </div>
-                    <span className="profile-display-name">{user?.fullName || user?.username}, P.E.</span>
-                    <ChevronDown className="profile-dropdown-icon" />
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-semibold text-grey-900">
+                        {user?.fullName || user?.username}
+                      </span>
+                      {user?.isEngineer && (
+                        <span className="bg-blue-100 text-blue-700 border border-blue-200 text-xs px-2 py-0.5 rounded">
+                          Licensed Engineer
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-grey-600" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="profile-dropdown-menu">
-                  <div className="profile-info-section">
-                    <p className="profile-name">{user?.fullName || user?.username}</p>
-                    <p className="profile-email">{user?.email}</p>
+                <DropdownMenuContent align="end" className="w-64 bg-white border-2 border-grey-200 shadow-lg">
+                  <div className="px-4 py-4">
+                    <p className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}</p>
+                    <p className="text-xs text-grey-600">{user?.email}</p>
                   </div>
-                  <DropdownMenuSeparator className="profile-menu-separator" />
+                  <DropdownMenuSeparator className="bg-grey-200" />
                   <DropdownMenuItem 
                     onClick={() => logout.mutate()}
                     disabled={logout.isPending}
-                    className="logout-menu-item"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer px-4 py-3"
                   >
-                    <LogOut className="logout-icon" />
-                    Sign Out
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {logout.isPending ? "Logging out..." : "Logout"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="wizard-main-content">
-        <div className="wizard-layout-grid">
+      <div className="container mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Step Navigation */}
-          <div className="wizard-sidebar-column">
+          <div className="lg:col-span-1">
             <StepNavigation
               currentStep={currentStep}
               completedSteps={completedSteps}
@@ -308,8 +333,8 @@ export default function ReportWizard() {
           </div>
 
           {/* Step Content */}
-          <div className="wizard-content-column">
-            <div className="wizard-step-container">
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-lg shadow-lg p-8">
               {renderCurrentStep()}
             </div>
           </div>
