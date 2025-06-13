@@ -13,6 +13,7 @@ export interface IStorage {
   getReportByProjectId(projectId: string): Promise<Report | undefined>;
   createReport(report: InsertReport): Promise<Report>;
   updateReport(id: number, updates: Partial<Report>): Promise<Report | undefined>;
+  deleteReport(id: number): Promise<void>;
   getReportsByUser(userId: number): Promise<Report[]>;
   getReportsForEngineerReview(engineerId: number): Promise<Report[]>;
   
@@ -21,6 +22,7 @@ export interface IStorage {
   createFormStep(step: InsertFormStep): Promise<FormStep>;
   updateFormStep(id: number, updates: Partial<FormStep>): Promise<FormStep | undefined>;
   getFormStep(reportId: number, stepNumber: number): Promise<FormStep | undefined>;
+  deleteFormStepsByReportId(reportId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -135,6 +137,10 @@ export class MemStorage implements IStorage {
     return updatedReport;
   }
 
+  async deleteReport(id: number): Promise<void> {
+    this.reports.delete(id);
+  }
+
   async getReportsByUser(userId: number): Promise<Report[]> {
     return Array.from(this.reports.values()).filter(report => report.createdBy === userId);
   }
@@ -171,6 +177,14 @@ export class MemStorage implements IStorage {
     return Array.from(this.formSteps.values()).find(
       step => step.reportId === reportId && step.stepNumber === stepNumber
     );
+  }
+
+  async deleteFormStepsByReportId(reportId: number): Promise<void> {
+    const stepIds = Array.from(this.formSteps.entries())
+      .filter(([, step]) => step.reportId === reportId)
+      .map(([id]) => id);
+    
+    stepIds.forEach(id => this.formSteps.delete(id));
   }
 }
 

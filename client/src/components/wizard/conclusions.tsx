@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useEffect, forwardRef, useImperativeHandle } from "react";
 import type { StepRef } from "@/lib/types";
+import { useLocation } from "wouter";
 
 interface ConclusionsProps {
   initialData?: Partial<Conclusions>;
@@ -37,6 +38,7 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const form = useForm<Conclusions>({
     resolver: zodResolver(conclusionsSchema),
@@ -134,6 +136,12 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
         title: "Report Saved",
         description: "Your report has been saved successfully.",
       });
+
+      // Navigate back to dashboard after successful save
+      setTimeout(() => {
+        setLocation("/");
+      }, 1000); // Small delay to show the success toast
+      
     } catch (error) {
       toast({
         title: "Save Failed", 

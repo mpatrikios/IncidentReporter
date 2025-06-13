@@ -73,6 +73,7 @@ User Input ← React Hook Form ← Step validation ← Zod schemas ← Shared ty
 - **`/api/reports/:id/steps/:stepNumber`** - PATCH for auto-saving step data
 - **`/api/reports/:id/save`** - POST for final report saving (compiles all steps)
 - **`/api/reports/:id/generate-doc`** - POST for Google Docs generation
+- **`/api/reports/:id`** - DELETE for removing reports and associated data
 - **Two validation modes**: strict for completed steps, lenient for auto-save
 
 ### Key Technical Patterns
@@ -144,6 +145,16 @@ Step numbers (1-6) are hardcoded throughout the system and must remain consisten
   - Conclusions: `{{conclusions}}`
 - **Data Flow**: Report steps → Compiled data → Template placeholders → Generated document
 - **Authentication Required**: Users must authenticate via `/auth/google` before generating documents
+
+### Report Management Features
+- **Edit Reports**: Navigate via `/reports/:id` route to edit existing reports with preserved data
+- **Save and Redirect**: Successful saves redirect users back to dashboard after 1-second delay
+- **Delete Reports**: Confirmation dialog prevents accidental deletion, removes report and form steps
+- **View Generated Docs**: Dashboard "View Doc" button opens Google Docs when `googleDocId` exists
+- **Smart Button States**: 
+  - Edit (blue) - Always available for report editing
+  - View Doc (green) - Enabled when Google Doc exists, disabled with "No Doc" when not generated
+  - Delete (red) - Always available with confirmation dialog
 
 ### Path Aliases
 - `@/` maps to `client/src/`

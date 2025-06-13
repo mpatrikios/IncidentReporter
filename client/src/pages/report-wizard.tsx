@@ -39,10 +39,12 @@ export default function ReportWizard() {
   const logout = useLogout();
   const stepRef = useRef<StepRef<any>>(null);
   
-  // Handle both direct report ID and edit parameter
+  // Handle both URL formats: /report-wizard?edit=123 and /reports/123
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const editReportId = urlParams.get('edit');
-  const reportId = editReportId ? parseInt(editReportId) : (id ? parseInt(id) : null);
+  const pathReportId = id; // From /reports/:id route
+  const reportId = editReportId ? parseInt(editReportId) : (pathReportId ? parseInt(pathReportId) : null);
+  
   
   const { saveFormData, formatLastSaved } = useFormPersistence(reportId);
 
@@ -57,6 +59,7 @@ export default function ReportWizard() {
     queryKey: ["/api/reports", reportId, "steps"],
     enabled: !!reportId,
   });
+
 
   // Create new report mutation
   const createReportMutation = useMutation({
@@ -77,16 +80,21 @@ export default function ReportWizard() {
     },
   });
 
-  // If no report ID, create a new report
+  // Only create a new report if we're not editing an existing one
   useEffect(() => {
-    if (!reportId) {
-      createReportMutation.mutate({
-        title: "New Civil Engineering Report",
-        reportType: "structural",
-        status: "draft",
-      });
-    }
-  }, [reportId]);
+    // Add a small delay to ensure route params are fully loaded
+    const timer = setTimeout(() => {
+      if (!reportId && !editReportId && !pathReportId) {
+        createReportMutation.mutate({
+          title: "New Civil Engineering Report",
+          reportType: "structural",
+          status: "draft",
+        });
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [reportId, editReportId, pathReportId]);
 
   if (!reportId || reportLoading || stepsLoading) {
     return (
@@ -103,11 +111,35 @@ export default function ReportWizard() {
   const progress = Math.min((completedSteps.length / FORM_STEPS.length) * 100, 85);
 
   const getStepData = (stepNumber: number) => {
-    console.log(`All steps:`, steps);
     const step = steps.find(s => s.stepNumber === stepNumber);
-    console.log(`Found step ${stepNumber}:`, step);
-    const data = step?.data || {};
-    console.log(`Getting data for step ${stepNumber}:`, data);
+    
+    // If step data is null but we have a saved report, try to get data from report.formData
+    let data = step?.data || {};
+    
+    if ((!data || Object.keys(data).length === 0 || data === null) && report?.formData) {
+      const formData = report.formData as any;
+      switch (stepNumber) {
+        case 1:
+          data = formData.projectInformation || {};
+          break;
+        case 2:
+          data = formData.assignmentScope || {};
+          break;
+        case 3:
+          data = formData.buildingAndSite || {};
+          break;
+        case 4:
+          data = formData.research || {};
+          break;
+        case 5:
+          data = formData.discussionAndAnalysis || {};
+          break;
+        case 6:
+          data = formData.conclusions || {};
+          break;
+      }
+    }
+    
     return data;
   };
 
@@ -178,7 +210,6 @@ export default function ReportWizard() {
 
   const renderCurrentStep = () => {
     const stepData = getStepData(currentStep);
-    console.log(`Rendering step ${currentStep} with initialData:`, stepData);
     
     switch (currentStep) {
       case 1:

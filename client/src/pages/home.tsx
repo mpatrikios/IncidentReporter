@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { FileText, Plus, User, LogOut, Zap, TrendingUp, BookOpen, HelpCircle, ChevronDown, Edit, Calendar } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { FileText, Plus, User, LogOut, Zap, TrendingUp, BookOpen, HelpCircle, ChevronDown, Edit, Calendar, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { user } = useAuth();
@@ -15,6 +17,7 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [reports, setReports] = useState<any[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(true);
+  const { toast } = useToast();
 
   const handleLogout = () => {
     logout.mutate();
@@ -25,7 +28,27 @@ export default function Home() {
   };
 
   const handleEditReport = (reportId: number) => {
-    setLocation(`/report-wizard?edit=${reportId}`);
+    setLocation(`/reports/${reportId}`);
+  };
+
+  const handleDeleteReport = async (reportId: number, reportTitle: string) => {
+    try {
+      await apiRequest("DELETE", `/api/reports/${reportId}`);
+      
+      // Remove the report from the local state
+      setReports(prevReports => prevReports.filter(report => report.id !== reportId));
+      
+      toast({
+        title: "Report Deleted",
+        description: `"${reportTitle}" has been deleted successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete report. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Fetch user reports
@@ -276,12 +299,51 @@ export default function Home() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        className="flex-1 border-grey-300 text-grey-700 hover:bg-grey-100"
-                        disabled
+                        className={`flex-1 ${
+                          report.googleDocId 
+                            ? "border-green-300 text-green-700 hover:bg-green-50" 
+                            : "border-grey-300 text-grey-400"
+                        }`}
+                        disabled={!report.googleDocId}
+                        onClick={() => {
+                          if (report.googleDocId) {
+                            window.open(`https://docs.google.com/document/d/${report.googleDocId}/edit`, '_blank');
+                          }
+                        }}
                       >
                         <FileText className="h-3 w-3 mr-1" />
-                        View
+                        {report.googleDocId ? "View Doc" : "No Doc"}
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Report</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{report.title || `Report ${report.projectId}`}"? 
+                              This action cannot be undone and will permanently remove the report and all its data.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteReport(report.id, report.title || `Report ${report.projectId}`)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete Report
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </CardContent>
                 </Card>

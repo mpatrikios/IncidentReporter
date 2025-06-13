@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle, FileText, Save, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 interface SubmitReportProps {
   reportId: number;
@@ -19,6 +20,7 @@ export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle 
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
 
   const handleGenerateDoc = async () => {
@@ -60,8 +62,11 @@ export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle 
         title: "Report Saved",
         description: "Your report has been saved successfully.",
       });
-      
-      // In a real app, this would redirect to dashboard
+
+      // Navigate back to dashboard after successful save
+      setTimeout(() => {
+        setLocation("/");
+      }, 1000); // Small delay to show the success toast
     } catch (error) {
       toast({
         title: "Save Failed", 
