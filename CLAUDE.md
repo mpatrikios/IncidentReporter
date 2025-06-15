@@ -18,7 +18,7 @@ The development server runs on port 5000 and serves both the API and the Vite de
 ### Database Setup
 ```bash
 # MongoDB Atlas connection (already configured as fallback)
-export MONGODB_URI="mongodb+srv://miapatrikios:Kefalonia2004@cluster0.yimatbm.mongodb.net/incident_reporter"
+export MONGODB_URI="mongodb+srv://miapatrikios:<Kefalonia2004>@cluster0.yimatbm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 # Or use local MongoDB for development:
 # export MONGODB_URI="mongodb://localhost:27017/incident_reporter"
