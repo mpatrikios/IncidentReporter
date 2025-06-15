@@ -16,88 +16,114 @@ interface GoogleProfile {
 }
 
 export function setupPassport() {
-
-  // Load Google OAuth credentials
-  let credentials;
-  try {
-    const credentialsPath = path.join(process.cwd(), 'server/config/credentials.json');
-    credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
-  } catch (error) {
-    console.error('Error loading Google OAuth credentials:', error);
-    console.log('Please ensure server/config/credentials.json exists with your Google OAuth credentials');
-    return;
-  }
-
-  // Configure Google OAuth Strategy
-  passport.use(new GoogleStrategy({
-    clientID: credentials.web.client_id,
-    clientSecret: credentials.web.client_secret,
-    callbackURL: "/auth/google/callback"
-  },
-  async (accessToken: string, refreshToken: string, profile: GoogleProfile, done: any) => {
-    try {
-      const email = profile.emails?.[0]?.value;
-      if (!email) {
-        return done(new Error('No email found in Google profile'));
-      }
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByGoogleId(profile.id);
-      
-      if (existingUser) {
-        // Update existing user with latest profile info and tokens
-        const updatedUser = await storage.updateUser((existingUser as any)._id.toString(), {
-          name: profile.displayName,
-          email: email,
-          picture: profile.photos?.[0]?.value,
-          givenName: profile.name?.givenName,
-          familyName: profile.name?.familyName,
-          googleAccessToken: accessToken,
-          googleRefreshToken: refreshToken,
-          tokenExpiresAt: new Date(Date.now() + 3600 * 1000), // 1 hour from now
-        });
-        
-        return done(null, updatedUser);
-      } else {
-        // Create new user
-        const newUser = await storage.createUser({
-          googleId: profile.id,
-          email: email,
-          name: profile.displayName,
-          picture: profile.photos?.[0]?.value,
-          givenName: profile.name?.givenName,
-          familyName: profile.name?.familyName,
-          isEngineer: false, // Default to false, can be updated later
-          googleAccessToken: accessToken,
-          googleRefreshToken: refreshToken,
-          tokenExpiresAt: new Date(Date.now() + 3600 * 1000), // 1 hour from now
-        });
-
-        return done(null, newUser);
-      }
-    } catch (error) {
-      console.error('Error in Google OAuth callback:', error);
-      return done(error);
-    }
-  }));
-
-  // Serialize user for session storage
-  passport.serializeUser((user: any, done) => {
-    done(null, user._id.toString());
-  });
-
   // Deserialize user from session
   passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
-      if (user) {
-        done(null, user);
-      } else {
-        done(new Error('User not found'));
-      }
+      done(null, user);
     } catch (error) {
-      done(error);
+      done(error, null);
     }
+  });
+
+  // Load Google OAuth credentials from file or environment variables
+  let credentials;
+  try {
+    const credentialsPath = path.join(
+      process.cwd(),
+      "server/config/credentials.json",
+    );
+    credentials = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
+  } catch (error) {
+    console.log(
+      "Google OAuth credentials file not found, checking environment variables...",
+    );
+
+    const clientID = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    if (!clientID || !clientSecret) {
+      console.log(
+        "Google OAuth not configured - neither credentials.json nor environment variables found",
+      );
+      console.log("Skipping Google OAuth setup...");
+      return;
+    }
+
+    credentials = {
+      web: {
+        client_id: clientID,
+        client_secret: clientSecret,
+      },
+    };
+  }
+
+  // Configure Google OAuth Strategy
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: credentials.web.client_id,
+        clientSecret: credentials.web.client_secret,
+        callbackURL: "/auth/google/callback",
+      },
+      async (
+        accessToken: string,
+        refreshToken: string,
+        profile: GoogleProfile,
+        done: any,
+      ) => {
+        try {
+          const email = profile.emails?.[0]?.value;
+          if (!email) {
+            return done(new Error("No email found in Google profile"));
+          }
+
+          // Check if user already exists
+          const existingUser = await storage.getUserByGoogleId(profile.id);
+
+          if (existingUser) {
+            // Update existing user with latest profile info and tokens
+            const updatedUser = await storage.updateUser(
+              (existingUser as any)._id.toString(),
+              {
+                name: profile.displayName,
+                email: email,
+                picture: profile.photos?.[0]?.value,
+                givenName: profile.name?.givenName,
+                familyName: profile.name?.familyName,
+                googleAccessToken: accessToken,
+                googleRefreshToken: refreshToken,
+                tokenExpiresAt: new Date(Date.now() + 3600 * 1000), // 1 hour from now
+              },
+            );
+            return done(null, updatedUser);
+          } else {
+            // Create new user
+            const newUser = await storage.createUser({
+              googleId: profile.id,
+              email: email,
+              name: profile.displayName,
+              picture: profile.photos?.[0]?.value,
+              givenName: profile.name?.givenName,
+              familyName: profile.name?.familyName,
+              isEngineer: false, // Default to false, can be updated later
+              googleAccessToken: accessToken,
+              googleRefreshToken: refreshToken,
+              tokenExpiresAt: new Date(Date.now() + 3600 * 1000), // 1 hour from now
+            });
+            return done(null, newUser);
+          }
+        } catch (error) {
+          console.error("Error in Google OAuth callback:", error);
+          return done(error);
+        }
+      },
+    ),
+  );
+
+  // Serialize user for session storage
+  passport.serializeUser((user: any, done) => {
+    done(null, user._id.toString());
   });
 }
 
@@ -106,7 +132,7 @@ export function requireAuth(req: any, res: any, next: any) {
   if (req.isAuthenticated()) {
     return next();
   }
-  res.status(401).json({ error: 'Authentication required' });
+  res.status(401).json({ error: "Authentication required" });
 }
 
 // Middleware to check if user is an engineer
@@ -114,5 +140,5 @@ export function requireEngineer(req: any, res: any, next: any) {
   if (req.isAuthenticated() && req.user?.isEngineer) {
     return next();
   }
-  res.status(403).json({ error: 'Engineer access required' });
+  res.status(403).json({ error: "Engineer access required" });
 }

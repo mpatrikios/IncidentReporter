@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import passport from "passport";
 import { requireAuth } from "./auth";
 import { storage } from "./storage";
+import fs from "fs";
+import path from "path";
 import { 
   createFormStepSchema,
   projectInformationSchema,
@@ -38,7 +40,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 =======
   // Google OAuth routes - only register if Google OAuth is configured
-  const isGoogleOAuthConfigured = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
+  let isGoogleOAuthConfigured = false;
+  try {
+    const credentialsPath = path.join(process.cwd(), 'server/config/credentials.json');
+    const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+    isGoogleOAuthConfigured = !!(credentials?.web?.client_id && credentials?.web?.client_secret);
+  } catch (error) {
+    isGoogleOAuthConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  }
   
   if (isGoogleOAuthConfigured) {
     app.get('/auth/google',
