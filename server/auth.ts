@@ -31,12 +31,12 @@ export function setupPassport() {
   try {
     const credentialsPath = path.join(
       process.cwd(),
-      "server/config/credentials.json",
+      "server/config/credentials.json"
     );
     credentials = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
   } catch (error) {
     console.log(
-      "Google OAuth credentials file not found, checking environment variables...",
+      "Google OAuth credentials file not found, checking environment variables..."
     );
 
     const clientID = process.env.GOOGLE_CLIENT_ID;
@@ -44,7 +44,7 @@ export function setupPassport() {
 
     if (!clientID || !clientSecret) {
       console.log(
-        "Google OAuth not configured - neither credentials.json nor environment variables found",
+        "Google OAuth not configured - neither credentials.json nor environment variables found"
       );
       console.log("Skipping Google OAuth setup...");
       return;
@@ -58,19 +58,23 @@ export function setupPassport() {
     };
   }
 
-  // Configure Google OAuth Strategy
+  // Use dynamic callback URL for compatibility with Replit and local environments
+  const baseUrl = process.env.REPLIT_DOMAINS
+    ? `https://${process.env.REPLIT_DOMAINS}`
+    : "http://localhost:5000";
+
   passport.use(
     new GoogleStrategy(
       {
         clientID: credentials.web.client_id,
         clientSecret: credentials.web.client_secret,
-        callbackURL: "/auth/google/callback",
+        callbackURL: `${baseUrl}/auth/google/callback`,
       },
       async (
         accessToken: string,
         refreshToken: string,
         profile: GoogleProfile,
-        done: any,
+        done: any
       ) => {
         try {
           const email = profile.emails?.[0]?.value;
@@ -82,7 +86,6 @@ export function setupPassport() {
           const existingUser = await storage.getUserByGoogleId(profile.id);
 
           if (existingUser) {
-            // Update existing user with latest profile info and tokens
             const updatedUser = await storage.updateUser(
               (existingUser as any)._id.toString(),
               {
@@ -94,11 +97,10 @@ export function setupPassport() {
                 googleAccessToken: accessToken,
                 googleRefreshToken: refreshToken,
                 tokenExpiresAt: new Date(Date.now() + 3600 * 1000), // 1 hour from now
-              },
+              }
             );
             return done(null, updatedUser);
           } else {
-            // Create new user
             const newUser = await storage.createUser({
               googleId: profile.id,
               email: email,
@@ -106,10 +108,10 @@ export function setupPassport() {
               picture: profile.photos?.[0]?.value,
               givenName: profile.name?.givenName,
               familyName: profile.name?.familyName,
-              isEngineer: false, // Default to false, can be updated later
+              isEngineer: false,
               googleAccessToken: accessToken,
               googleRefreshToken: refreshToken,
-              tokenExpiresAt: new Date(Date.now() + 3600 * 1000), // 1 hour from now
+              tokenExpiresAt: new Date(Date.now() + 3600 * 1000),
             });
             return done(null, newUser);
           }
@@ -117,8 +119,8 @@ export function setupPassport() {
           console.error("Error in Google OAuth callback:", error);
           return done(error);
         }
-      },
-    ),
+      }
+    )
   );
 
   // Serialize user for session storage
