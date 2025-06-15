@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import passport from "passport";
@@ -12,15 +12,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Add session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key', // In production, use environment variable
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    secure: false, // Set to true in production with HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "your-secret-key", // In production, use environment variable
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  }),
+);
 
 // Initialize Passport
 app.use(passport.initialize());
@@ -61,8 +63,15 @@ app.use((req, res, next) => {
 
 (async () => {
   // Connect to MongoDB
-  await connectDB();
-  
+  try {
+    await connectDB();
+  } catch (error: any) {
+    console.log(
+      "MongoDB connection failed, continuing without database:",
+      error.message,
+    );
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -86,7 +95,7 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = process.env.PORT ? parseInt(process.env.PORT) : 5000;
-  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+  const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
   server.listen(port, host, () => {
     log(`serving on ${host}:${port}`);
   });

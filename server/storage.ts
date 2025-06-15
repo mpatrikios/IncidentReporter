@@ -30,14 +30,18 @@ export interface IStorage {
 
 export class MongoStorage implements IStorage {
   constructor() {
-    // Initialize MongoDB connection
-    connectDB();
+    // Connection will be established when needed
   }
 
   // User methods
   async getUser(id: string): Promise<IUser | null> {
-    await connectDB();
-    return User.findById(id);
+    try {
+      await connectDB();
+      return User.findById(id);
+    } catch (error) {
+      console.log('Database not available for getUser');
+      return null;
+    }
   }
 
   async getUserByGoogleId(googleId: string): Promise<IUser | null> {
