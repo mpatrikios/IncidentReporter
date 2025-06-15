@@ -24,6 +24,7 @@ function isValidObjectId(id: string): boolean {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+<<<<<<< HEAD
   // Google OAuth routes
   app.get('/auth/google',
     passport.authenticate('google', { 
@@ -35,14 +36,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ] 
     })
   );
+=======
+  // Google OAuth routes - only register if Google OAuth is configured
+  const isGoogleOAuthConfigured = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
+  
+  if (isGoogleOAuthConfigured) {
+    app.get('/auth/google',
+      passport.authenticate('google', { 
+        scope: [
+          'profile', 
+          'email', 
+          'https://www.googleapis.com/auth/docs',
+          'https://www.googleapis.com/auth/drive.file'
+        ] 
+      })
+    );
+>>>>>>> 5d73c6f (Handle missing Google authentication setup gracefully during login process)
 
-  app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login' }),
-    (req, res) => {
-      // Successful authentication, redirect to dashboard
-      res.redirect('/dashboard');
-    }
-  );
+    app.get('/auth/google/callback',
+      passport.authenticate('google', { failureRedirect: '/login' }),
+      (req, res) => {
+        // Successful authentication, redirect to dashboard
+        res.redirect('/dashboard');
+      }
+    );
+  } else {
+    // Provide fallback routes when Google OAuth is not configured
+    app.get('/auth/google', (req, res) => {
+      res.status(501).json({ message: "Google OAuth not configured" });
+    });
+
+    app.get('/auth/google/callback', (req, res) => {
+      res.status(501).json({ message: "Google OAuth not configured" });
+    });
+  }
 
   // Authentication routes
   app.post("/api/auth/logout", (req, res) => {

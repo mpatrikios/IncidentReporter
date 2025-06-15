@@ -16,6 +16,7 @@ interface GoogleProfile {
 }
 
 export function setupPassport() {
+
   // Load Google OAuth credentials
   let credentials;
   try {
