@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 
+<<<<<<< HEAD
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://miapatrikios:Kefalonia2004@cluster0.yimatbm.mongodb.net/incident_reporter';
+=======
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://username:password@cluster.mongodb.net/incidentreporter';
+>>>>>>> d2063bd (Improve connection to database and provide more robust server startup)
 
 let cached = (global as any).mongoose;
 
@@ -16,6 +20,8 @@ export async function connectDB() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000, // 5 second timeout
+      connectTimeoutMS: 5000, // 5 second timeout
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
@@ -27,6 +33,7 @@ export async function connectDB() {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
+    console.log('MongoDB connection failed, will retry on next request');
     throw e;
   }
 
