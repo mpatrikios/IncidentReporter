@@ -10,22 +10,40 @@ npm run dev       # Start development server (Express + Vite)
 npm run build     # Build for production (client + server)
 npm run start     # Start production server
 npm run check     # TypeScript type checking
-npm run db:push   # Push database schema changes
 ```
 
 ### Local Development Server
 The development server runs on port 5000 and serves both the API and the Vite dev server. The frontend is accessible at the same port with Vite middleware handling client-side routing.
 
+### Database Setup
+```bash
+# MongoDB Atlas connection (already configured as fallback)
+export MONGODB_URI="mongodb+srv://miapatrikios:Kefalonia2004@cluster0.yimatbm.mongodb.net/incident_reporter"
+
+# Or use local MongoDB for development:
+# export MONGODB_URI="mongodb://localhost:27017/incident_reporter"
+
+# No schema migration needed - Mongoose handles schema automatically
+```
+
+### Authentication Setup
+The application uses Google OAuth2 for user authentication with Drive integration:
+
+```bash
+# 1. Create Google OAuth credentials and save to server/config/credentials.json
+# 2. User login via Google OAuth: http://localhost:5000/auth/google
+# 3. Users grant permissions for: profile, email, Google Docs, Google Drive
+# 4. Check authentication status: GET /api/auth/user
+# 5. Logout: POST /api/auth/logout
+```
+
 ### Google Docs Setup
 ```bash
-# 1. Authenticate with Google (required before generating docs)
-# Visit: http://localhost:5000/auth/google
-
-# 2. Check authentication status
-curl http://localhost:5000/api/google/auth-status
-
-# 3. Update template ID in server/config/template.json
+# 1. Update template ID in server/config/template.json
 # Current template: 1CBu2TR8Qcbb5NvACWyw8hc6Fo53_yGEIySnQ7rAHVSA
+
+# 2. Documents are automatically generated in user's Google Drive
+# No separate authentication needed - uses user's OAuth tokens
 ```
 
 ### Killing Stuck Processes
@@ -40,10 +58,10 @@ lsof -ti:5000 | xargs kill        # Kill anything on port 5000
 This is a **fullstack TypeScript application** for civil engineering report generation with the following key architectural decisions:
 
 #### Shared Schema System
-- **`shared/schema.ts`** defines all database tables, validation schemas, and TypeScript types
-- Uses **Drizzle ORM** for database schema + **Zod** for runtime validation
+- **`shared/schema.ts`** defines all MongoDB models, validation schemas, and TypeScript types
+- Uses **Mongoose** for MongoDB schema + **Zod** for runtime validation
 - All forms, API endpoints, and database operations share the same type definitions
-- Schema changes require updating both the database (`npm run db:push`) and potentially the form components
+- Schema changes are handled automatically by Mongoose - no manual migrations needed
 
 #### Multi-Step Wizard Architecture
 The core feature is a **6-step report wizard** with auto-save functionality:
@@ -98,27 +116,28 @@ Wizard steps use `forwardRef` with `useImperativeHandle` to expose:
 - This allows the parent wizard to save current step data before navigation
 
 ### Google API Integration
-- **OAuth2 Authentication**: Uses `server/config/credentials.json` for Google API access
+- **User-Based Authentication**: Each user's Google tokens stored securely in MongoDB
 - **Template-based Generation**: Configured template ID in `server/config/template.json` (currently: `1CBu2TR8Qcbb5NvACWyw8hc6Fo53_yGEIySnQ7rAHVSA`)
 - **Document Service**: `server/services/googleDocsService.ts` handles API interactions
-- **Authentication Flow**: 
-  - Visit `/auth/google` to authenticate
-  - Callback at `/auth/google/callback` sets tokens
-  - Check status at `/api/google/auth-status`
+- **OAuth Scopes**: `profile`, `email`, `docs`, `drive.file` permissions
 - **Template Placeholders**: Form data maps to `{{field_name}}` placeholders in Google Docs
-- **Automatic Document Creation**: Copies template, fills placeholders, returns document URL
+- **User Drive Integration**: Documents created directly in each user's Google Drive
+- **Automatic Permission Management**: Users own their generated documents
 
 ### Database Layer
 - **Storage interface** (`IStorage`) abstracts data access
-- **MemStorage** class provides in-memory implementation for development
-- **Drizzle ORM** for type-safe database operations
-- Form steps stored as JSONB with step numbers for ordering
+- **MongoStorage** class provides MongoDB implementation with Mongoose
+- **MongoDB** with automatic connection pooling and reconnection
+- Form steps stored as MongoDB documents with ObjectId references
+- Automatic indexing for optimal query performance
 
 ### Authentication & Session Management
-- Uses **Express sessions** with **Passport.js**
-- User profiles include engineer licensing status
+- Uses **Google OAuth2** with **Passport.js** for authentication
+- **Passport Google OAuth2 Strategy** handles user login flow
+- User profiles include Google account data and engineer licensing status
 - Session-based authentication for API endpoints
-- Mock users created in memory storage for development
+- All report routes require authentication via `requireAuth` middleware
+- Users are automatically created/updated on first Google login
 
 ## Important Implementation Notes
 
@@ -163,3 +182,9 @@ Step numbers (1-6) are hardcoded throughout the system and must remain consisten
 
 ### CSS Framework
 Uses **Tailwind CSS** with custom color variables (`grey-*`, `primary-*`) and **Radix UI** components for consistent design system.
+
+### Testing & Quality
+- **TypeScript**: Full type coverage across frontend and backend
+- **Zod**: Runtime validation for all API inputs and form data
+- **Error Handling**: User-friendly error messages and comprehensive error boundaries
+- Use `npm run check` to verify TypeScript types before committing

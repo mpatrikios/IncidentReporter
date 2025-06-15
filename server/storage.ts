@@ -1,191 +1,139 @@
-import { users, reports, formSteps, type User, type InsertUser, type Report, type InsertReport, type FormStep, type InsertFormStep } from "@shared/schema";
+import { User, Report, FormStep, type IUser, type IReport, type IFormStep, type GoogleUser, type CreateReport, type CreateFormStep } from "@shared/schema";
+import { connectDB } from "./db";
+import mongoose from "mongoose";
 
 export interface IStorage {
   // Users - Authentication
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  validateUser(username: string, password: string): Promise<User | null>;
+  getUser(id: string): Promise<IUser | null>;
+  getUserByGoogleId(googleId: string): Promise<IUser | null>;
+  getUserByEmail(email: string): Promise<IUser | null>;
+  createUser(user: GoogleUser): Promise<IUser>;
+  updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null>;
+  getUserWithTokens(id: string): Promise<IUser | null>;
   
   // Reports
-  getReport(id: number): Promise<Report | undefined>;
-  getReportByProjectId(projectId: string): Promise<Report | undefined>;
-  createReport(report: InsertReport): Promise<Report>;
-  updateReport(id: number, updates: Partial<Report>): Promise<Report | undefined>;
-  deleteReport(id: number): Promise<void>;
-  getReportsByUser(userId: number): Promise<Report[]>;
-  getReportsForEngineerReview(engineerId: number): Promise<Report[]>;
+  getReport(id: string): Promise<IReport | null>;
+  getReportByProjectId(projectId: string): Promise<IReport | null>;
+  createReport(report: CreateReport): Promise<IReport>;
+  updateReport(id: string, updates: Partial<IReport>): Promise<IReport | null>;
+  deleteReport(id: string): Promise<void>;
+  getReportsByUser(userId: string): Promise<IReport[]>;
+  getReportsForEngineerReview(engineerId: string): Promise<IReport[]>;
   
   // Form Steps
-  getFormSteps(reportId: number): Promise<FormStep[]>;
-  createFormStep(step: InsertFormStep): Promise<FormStep>;
-  updateFormStep(id: number, updates: Partial<FormStep>): Promise<FormStep | undefined>;
-  getFormStep(reportId: number, stepNumber: number): Promise<FormStep | undefined>;
-  deleteFormStepsByReportId(reportId: number): Promise<void>;
+  getFormSteps(reportId: string): Promise<IFormStep[]>;
+  createFormStep(step: CreateFormStep): Promise<IFormStep>;
+  updateFormStep(id: string, updates: Partial<IFormStep>): Promise<IFormStep | null>;
+  getFormStep(reportId: string, stepNumber: number): Promise<IFormStep | null>;
+  deleteFormStepsByReportId(reportId: string): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private reports: Map<number, Report>;
-  private formSteps: Map<number, FormStep>;
-  private currentUserId: number;
-  private currentReportId: number;
-  private currentFormStepId: number;
-
+export class MongoStorage implements IStorage {
   constructor() {
-    this.users = new Map();
-    this.reports = new Map();
-    this.formSteps = new Map();
-    this.currentUserId = 1;
-    this.currentReportId = 1;
-    this.currentFormStepId = 1;
-
-    // Create sample users
-    this.createUser({
-      username: "john.doe",
-      password: "password123",
-      email: "john.doe@example.com",
-      firstName: "John",
-      lastName: "Doe",
-      fullName: "John Doe",
-      title: "P.E.",
-      isEngineer: true,
-    });
-
-    this.createUser({
-      username: "jane.smith",
-      password: "password123",
-      email: "jane.smith@example.com",
-      firstName: "Jane",
-      lastName: "Smith",
-      fullName: "Jane Smith",
-      title: "Engineer",
-      isEngineer: false,
-    });
+    // Initialize MongoDB connection
+    connectDB();
   }
 
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+  // User methods
+  async getUser(id: string): Promise<IUser | null> {
+    await connectDB();
+    return User.findById(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+  async getUserByGoogleId(googleId: string): Promise<IUser | null> {
+    await connectDB();
+    return User.findOne({ googleId });
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const now = new Date();
-    const user: User = { 
-      ...insertUser, 
-      id,
-      firstName: insertUser.firstName || null,
-      lastName: insertUser.lastName || null,
-      fullName: insertUser.fullName || null,
-      title: insertUser.title || null,
-      isEngineer: insertUser.isEngineer || false,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.users.set(id, user);
-    return user;
+  async getUserByEmail(email: string): Promise<IUser | null> {
+    await connectDB();
+    return User.findOne({ email });
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
+  async createUser(userData: GoogleUser): Promise<IUser> {
+    await connectDB();
+    const user = new User(userData);
+    return user.save();
   }
 
-  async validateUser(username: string, password: string): Promise<User | null> {
-    const user = await this.getUserByUsername(username);
-    if (user && user.password === password) {
-      return user;
-    }
-    return null;
+  async updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null> {
+    await connectDB();
+    return User.findByIdAndUpdate(id, updates, { new: true });
   }
 
-  async getReport(id: number): Promise<Report | undefined> {
-    return this.reports.get(id);
+  async getUserWithTokens(id: string): Promise<IUser | null> {
+    await connectDB();
+    return User.findById(id).select('+googleAccessToken +googleRefreshToken');
   }
 
-  async getReportByProjectId(projectId: string): Promise<Report | undefined> {
-    return Array.from(this.reports.values()).find(report => report.projectId === projectId);
+  // Report methods
+  async getReport(id: string): Promise<IReport | null> {
+    await connectDB();
+    return Report.findById(id).populate('userId assignedEngineer');
   }
 
-  async createReport(insertReport: InsertReport): Promise<Report> {
-    const id = this.currentReportId++;
-    const now = new Date();
-    const report: Report = {
-      ...insertReport,
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.reports.set(id, report);
-    return report;
+  async getReportByProjectId(projectId: string): Promise<IReport | null> {
+    await connectDB();
+    return Report.findOne({ projectId }).populate('userId assignedEngineer');
   }
 
-  async updateReport(id: number, updates: Partial<Report>): Promise<Report | undefined> {
-    const report = this.reports.get(id);
-    if (!report) return undefined;
-
-    const updatedReport: Report = {
-      ...report,
-      ...updates,
-      updatedAt: new Date(),
-    };
-    this.reports.set(id, updatedReport);
-    return updatedReport;
+  async createReport(reportData: CreateReport): Promise<IReport> {
+    await connectDB();
+    const report = new Report(reportData);
+    return report.save();
   }
 
-  async deleteReport(id: number): Promise<void> {
-    this.reports.delete(id);
+  async updateReport(id: string, updates: Partial<IReport>): Promise<IReport | null> {
+    await connectDB();
+    return Report.findByIdAndUpdate(id, updates, { new: true }).populate('userId assignedEngineer');
   }
 
-  async getReportsByUser(userId: number): Promise<Report[]> {
-    return Array.from(this.reports.values()).filter(report => report.createdBy === userId);
+  async deleteReport(id: string): Promise<void> {
+    await connectDB();
+    await Report.findByIdAndDelete(id);
+    // Also delete associated form steps
+    await FormStep.deleteMany({ reportId: id });
   }
 
-  async getReportsForEngineerReview(engineerId: number): Promise<Report[]> {
-    return Array.from(this.reports.values()).filter(
-      report => report.assignedEngineer === engineerId && report.status === "in_review"
-    );
+  async getReportsByUser(userId: string): Promise<IReport[]> {
+    await connectDB();
+    return Report.find({ userId }).populate('userId assignedEngineer').sort({ updatedAt: -1 });
   }
 
-  async getFormSteps(reportId: number): Promise<FormStep[]> {
-    return Array.from(this.formSteps.values())
-      .filter(step => step.reportId === reportId)
-      .sort((a, b) => a.stepNumber - b.stepNumber);
+  async getReportsForEngineerReview(engineerId: string): Promise<IReport[]> {
+    await connectDB();
+    return Report.find({ 
+      assignedEngineer: engineerId, 
+      status: "in_review" 
+    }).populate('userId assignedEngineer').sort({ updatedAt: -1 });
   }
 
-  async createFormStep(insertStep: InsertFormStep): Promise<FormStep> {
-    const id = this.currentFormStepId++;
-    const step: FormStep = { ...insertStep, id };
-    this.formSteps.set(id, step);
-    return step;
+  // Form Step methods
+  async getFormSteps(reportId: string): Promise<IFormStep[]> {
+    await connectDB();
+    return FormStep.find({ reportId }).sort({ stepNumber: 1 });
   }
 
-  async updateFormStep(id: number, updates: Partial<FormStep>): Promise<FormStep | undefined> {
-    const step = this.formSteps.get(id);
-    if (!step) return undefined;
-
-    const updatedStep: FormStep = { ...step, ...updates };
-    this.formSteps.set(id, updatedStep);
-    return updatedStep;
+  async createFormStep(stepData: CreateFormStep): Promise<IFormStep> {
+    await connectDB();
+    const step = new FormStep(stepData);
+    return step.save();
   }
 
-  async getFormStep(reportId: number, stepNumber: number): Promise<FormStep | undefined> {
-    return Array.from(this.formSteps.values()).find(
-      step => step.reportId === reportId && step.stepNumber === stepNumber
-    );
+  async updateFormStep(id: string, updates: Partial<IFormStep>): Promise<IFormStep | null> {
+    await connectDB();
+    return FormStep.findByIdAndUpdate(id, updates, { new: true });
   }
 
-  async deleteFormStepsByReportId(reportId: number): Promise<void> {
-    const stepIds = Array.from(this.formSteps.entries())
-      .filter(([, step]) => step.reportId === reportId)
-      .map(([id]) => id);
-    
-    stepIds.forEach(id => this.formSteps.delete(id));
+  async getFormStep(reportId: string, stepNumber: number): Promise<IFormStep | null> {
+    await connectDB();
+    return FormStep.findOne({ reportId, stepNumber });
+  }
+
+  async deleteFormStepsByReportId(reportId: string): Promise<void> {
+    await connectDB();
+    await FormStep.deleteMany({ reportId });
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new MongoStorage();

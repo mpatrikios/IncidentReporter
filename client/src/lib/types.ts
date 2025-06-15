@@ -11,42 +11,42 @@ export const FORM_STEPS: FormStepConfig[] = [
     number: 1,
     name: "projectInformation",
     title: "Project Information",
-    description: "Insured details, file numbers, and client contact information",
-    icon: "fas fa-clipboard-list"
+    description: "Report details, insured info, loss information, and engineering team",
+    icon: "fas fa-file-alt"
   },
   {
     number: 2,
     name: "assignmentScope", 
-    title: "Assignment Scope",
-    description: "Assignment details, site contacts, and document review",
-    icon: "fas fa-tasks"
+    title: "Methodology",
+    description: "Investigation methodology, interviewees, and document review",
+    icon: "fas fa-clipboard-list"
   },
   {
     number: 3,
     name: "buildingAndSite",
-    title: "Building & Site Observations", 
-    description: "Building description and detailed site observations",
+    title: "Background & Observations", 
+    description: "Building background, system description, and site observations",
     icon: "fas fa-building"
   },
   {
     number: 4,
     name: "research",
     title: "Research",
-    description: "Weather data and CoreLogic research findings",
-    icon: "fas fa-search"
+    description: "Weather conditions, CoreLogic hail and wind verification reports",
+    icon: "fas fa-chart-bar"
   },
   {
     number: 5,
     name: "discussionAndAnalysis",
     title: "Discussion & Analysis",
-    description: "Technical analysis and engineering discussion",
+    description: "Site analysis, weather discussion, impact analysis, and recommendations",
     icon: "fas fa-comments"
   },
   {
     number: 6,
     name: "conclusions",
     title: "Conclusions",
-    description: "Final conclusions and report completion",
+    description: "Final engineering conclusions and report completion",
     icon: "fas fa-check-circle"
   }
 ];
@@ -55,7 +55,7 @@ export interface WizardContextType {
   currentStep: number;
   totalSteps: number;
   completedSteps: number[];
-  reportId: number | null;
+  reportId: string | null;
   formData: any;
   goToStep: (step: number) => void;
   nextStep: () => void;

@@ -19,7 +19,7 @@ interface DesignSpecificationsProps {
   initialData?: Partial<DesignSpecifications>;
   onSubmit: (data: DesignSpecifications) => void;
   onPrevious?: () => void;
-  reportId?: number | null;
+  reportId?: string | null;
 }
 
 export const DesignSpecificationsStep = forwardRef<StepRef<DesignSpecifications>, DesignSpecificationsProps>(({ 

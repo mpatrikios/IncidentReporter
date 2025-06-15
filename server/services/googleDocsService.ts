@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
+import { storage } from '../storage';
 import fs from 'fs';
 import path from 'path';
 
@@ -13,15 +14,13 @@ interface ReportData {
 }
 
 class GoogleDocsService {
-  private auth: OAuth2Client | null = null;
-  private docs: any = null;
-  private drive: any = null;
+  private credentials: any = null;
 
   constructor() {
-    this.initializeAuth();
+    this.loadCredentials();
   }
 
-  private async initializeAuth() {
+  private async loadCredentials() {
     try {
       const credentialsPath = path.join(process.cwd(), 'server/config/credentials.json');
       
@@ -30,30 +29,42 @@ class GoogleDocsService {
         return;
       }
 
-      const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
-      
-      this.auth = new google.auth.OAuth2(
-        credentials.web.client_id,
-        credentials.web.client_secret,
-        credentials.web.redirect_uris[0]
-      );
-
-      // You'll need to set the access token here
-      // For now, this is a placeholder - you'll need to implement OAuth flow
-      // this.auth.setCredentials({
-      //   access_token: 'your_access_token',
-      //   refresh_token: 'your_refresh_token'
-      // });
-
-      this.docs = google.docs({ version: 'v1', auth: this.auth });
-      this.drive = google.drive({ version: 'v3', auth: this.auth });
-      
+      this.credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
     } catch (error) {
-      console.error('Failed to initialize Google Auth:', error);
+      console.error('Failed to load Google credentials:', error);
     }
   }
 
-  public async generateFromTemplate(reportData: ReportData, reportTitle: string): Promise<string | null> {
+  private async createUserAuth(userId: string): Promise<{ auth: OAuth2Client; docs: any; drive: any } | null> {
+    if (!this.credentials) {
+      throw new Error('Google credentials not loaded');
+    }
+
+    // Get user with tokens
+    const user = await storage.getUserWithTokens(userId);
+    if (!user || !user.googleAccessToken) {
+      throw new Error('User not found or missing Google access token');
+    }
+
+    const auth = new google.auth.OAuth2(
+      this.credentials.web.client_id,
+      this.credentials.web.client_secret,
+      this.credentials.web.redirect_uris[0]
+    );
+
+    // Set user's tokens
+    auth.setCredentials({
+      access_token: user.googleAccessToken,
+      refresh_token: user.googleRefreshToken,
+    });
+
+    const docs = google.docs({ version: 'v1', auth });
+    const drive = google.drive({ version: 'v3', auth });
+
+    return { auth, docs, drive };
+  }
+
+  public async generateFromTemplate(userId: string, reportData: ReportData, reportTitle: string): Promise<string | null> {
     // Read template ID from config
     const templateConfigPath = path.join(process.cwd(), 'server/config/template.json');
     
@@ -68,20 +79,24 @@ class GoogleDocsService {
       throw new Error('Template ID not configured. Please set templateId in server/config/template.json');
     }
 
-    return this.fillTemplate(templateId, reportData, reportTitle);
+    return this.fillTemplate(userId, templateId, reportData, reportTitle);
   }
 
-  private async fillTemplate(templateId: string, reportData: ReportData, reportTitle: string): Promise<string | null> {
-    if (!this.auth || !this.docs || !this.drive) {
-      throw new Error('Google API not properly initialized. Please check credentials and authentication.');
+  private async fillTemplate(userId: string, templateId: string, reportData: ReportData, reportTitle: string): Promise<string | null> {
+    const userAuth = await this.createUserAuth(userId);
+    if (!userAuth) {
+      throw new Error('Failed to create user authentication');
     }
 
+    const { docs, drive } = userAuth;
+
     try {
-      // Copy the template to create a new document
-      const copyResponse = await this.drive.files.copy({
+      // Copy the template to create a new document in user's Drive
+      const copyResponse = await drive.files.copy({
         fileId: templateId,
         requestBody: {
-          name: reportTitle
+          name: reportTitle,
+          // The document will be created in the user's Drive root by default
         }
       });
 
@@ -107,7 +122,7 @@ class GoogleDocsService {
 
       // Execute the batch update
       if (requests.length > 0) {
-        await this.docs.documents.batchUpdate({
+        await docs.documents.batchUpdate({
           documentId: newDocumentId,
           requestBody: {
             requests: requests
@@ -115,6 +130,7 @@ class GoogleDocsService {
         });
       }
 
+      console.log(`✅ Document created in user's Google Drive: ${reportTitle} (ID: ${newDocumentId})`);
       return newDocumentId;
 
     } catch (error) {
@@ -130,45 +146,41 @@ class GoogleDocsService {
     if (reportData.projectInformation) {
       const pi = reportData.projectInformation;
       replacements.push(
+        { placeholder: '{{file_number}}', value: pi.fileNumber || '' },
+        { placeholder: '{{date_of_creation}}', value: pi.dateOfCreation || '' },
         { placeholder: '{{insured_name}}', value: pi.insuredName || '' },
         { placeholder: '{{insured_address}}', value: pi.insuredAddress || '' },
-        { placeholder: '{{file_number}}', value: pi.fileNumber || '' },
+        { placeholder: '{{date_of_loss}}', value: pi.dateOfLoss || '' },
         { placeholder: '{{claim_number}}', value: pi.claimNumber || '' },
         { placeholder: '{{client_company}}', value: pi.clientCompany || '' },
-        { placeholder: '{{client_contact_name}}', value: pi.clientContactName || '' },
-        { placeholder: '{{client_email}}', value: pi.clientEmail || '' },
-        { placeholder: '{{date_of_loss}}', value: pi.dateOfLoss || '' },
-        { placeholder: '{{site_visit_date}}', value: pi.siteVisitDate || '' },
+        { placeholder: '{{client_contact}}', value: pi.clientContact || '' },
         { placeholder: '{{engineer_name}}', value: pi.engineerName || '' },
-        { placeholder: '{{technical_reviewer_name}}', value: pi.technicalReviewerName || '' }
+        { placeholder: '{{technical_reviewer}}', value: pi.technicalReviewer || '' },
+        { placeholder: '{{received_date}}', value: pi.receivedDate || '' },
+        { placeholder: '{{site_visit_date}}', value: pi.siteVisitDate || '' }
       );
     }
 
-    // Assignment Scope replacements
+    // Assignment Scope (Methodology) replacements
     if (reportData.assignmentScope) {
       const as = reportData.assignmentScope;
       replacements.push(
-        { placeholder: '{{assignment_scope}}', value: as.assignmentScope || '' },
-        { placeholder: '{{site_contact}}', value: as.siteContact || '' },
-        { placeholder: '{{interviewees}}', value: as.interviewees || '' },
-        { placeholder: '{{documents_reviewed}}', value: as.documentsReviewed || '' },
-        { placeholder: '{{weather_research_summary}}', value: as.weatherResearchSummary || '' }
+        { placeholder: '{{interviewees_names}}', value: as.intervieweesNames || '' },
+        { placeholder: '{{provided_documents_titles}}', value: as.providedDocumentsTitles || '' }
       );
     }
 
     // Building & Site Observations replacements
-    if (reportData.buildingObservations) {
-      const bo = reportData.buildingObservations;
+    if (reportData.buildingAndSite) {
+      const bs = reportData.buildingAndSite;
       replacements.push(
-        { placeholder: '{{structure_age}}', value: bo.structureAge || '' },
-        { placeholder: '{{square_footage}}', value: bo.squareFootage || '' },
-        { placeholder: '{{roof_type}}', value: bo.roofType || '' },
-        { placeholder: '{{ventilation_description}}', value: bo.ventilationDescription || '' },
-        { placeholder: '{{building_description}}', value: bo.buildingDescription || '' },
-        { placeholder: '{{exterior_observations}}', value: bo.exteriorObservations || '' },
-        { placeholder: '{{interior_observations}}', value: bo.interiorObservations || '' },
-        { placeholder: '{{crawlspace_observations}}', value: bo.crawlspaceObservations || '' },
-        { placeholder: '{{site_observations}}', value: bo.siteObservations || '' }
+        { placeholder: '{{structure_built_date}}', value: bs.structureBuiltDate || '' },
+        { placeholder: '{{structure_age}}', value: bs.structureAge || '' },
+        { placeholder: '{{building_system_description}}', value: bs.buildingSystemDescription || '' },
+        { placeholder: '{{front_facing_direction}}', value: bs.frontFacingDirection || '' },
+        { placeholder: '{{exterior_observations}}', value: bs.exteriorObservations || '' },
+        { placeholder: '{{interior_observations}}', value: bs.interiorObservations || '' },
+        { placeholder: '{{other_site_observations}}', value: bs.otherSiteObservations || '' }
       );
     }
 
@@ -177,14 +189,19 @@ class GoogleDocsService {
       const r = reportData.research;
       replacements.push(
         { placeholder: '{{weather_data_summary}}', value: r.weatherDataSummary || '' },
-        { placeholder: '{{corelogic_data_summary}}', value: r.corelogicDataSummary || '' }
+        { placeholder: '{{corelogic_hail_summary}}', value: r.corelogicHailSummary || '' },
+        { placeholder: '{{corelogic_wind_summary}}', value: r.corelogicWindSummary || '' }
       );
     }
 
     // Discussion & Analysis replacements
-    if (reportData.discussionAnalysis) {
+    if (reportData.discussionAndAnalysis) {
+      const da = reportData.discussionAndAnalysis;
       replacements.push(
-        { placeholder: '{{discussion_and_analysis}}', value: reportData.discussionAnalysis.discussionAndAnalysis || '' }
+        { placeholder: '{{site_discussion_analysis}}', value: da.siteDiscussionAnalysis || '' },
+        { placeholder: '{{weather_discussion_analysis}}', value: da.weatherDiscussionAnalysis || '' },
+        { placeholder: '{{weather_impact_analysis}}', value: da.weatherImpactAnalysis || '' },
+        { placeholder: '{{recommendations_and_discussion}}', value: da.recommendationsAndDiscussion || '' }
       );
     }
 
@@ -198,39 +215,13 @@ class GoogleDocsService {
     return replacements;
   }
 
-  public async isAuthenticated(): Promise<boolean> {
-    if (!this.auth || !this.docs) {
+  public async isUserAuthenticated(userId: string): Promise<boolean> {
+    try {
+      const user = await storage.getUserWithTokens(userId);
+      return !!(user && user.googleAccessToken);
+    } catch (error) {
       return false;
     }
-    
-    // Check if we have valid credentials
-    const credentials = this.auth.credentials;
-    return !!(credentials && (credentials.access_token || credentials.refresh_token));
-  }
-
-  public getAuthUrl(): string {
-    if (!this.auth) {
-      throw new Error('Auth not initialized');
-    }
-
-    const scopes = [
-      'https://www.googleapis.com/auth/documents',
-      'https://www.googleapis.com/auth/drive'
-    ];
-
-    return this.auth.generateAuthUrl({
-      access_type: 'offline',
-      scope: scopes,
-    });
-  }
-
-  public async setAuthTokens(code: string): Promise<void> {
-    if (!this.auth) {
-      throw new Error('Auth not initialized');
-    }
-
-    const { tokens } = await this.auth.getToken(code);
-    this.auth.setCredentials(tokens);
   }
 }
 

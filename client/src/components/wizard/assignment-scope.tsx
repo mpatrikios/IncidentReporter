@@ -13,7 +13,7 @@ interface AssignmentScopeProps {
   initialData?: Partial<AssignmentScope>;
   onSubmit: (data: AssignmentScope) => void;
   onPrevious?: () => void;
-  reportId?: number | null;
+  reportId?: string | null;
 }
 
 export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, AssignmentScopeProps>(({ 
@@ -25,11 +25,9 @@ export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, Assignme
   const form = useForm<AssignmentScope>({
     resolver: zodResolver(assignmentScopeSchema),
     defaultValues: {
-      assignmentScope: "",
-      siteContact: "",
-      interviewees: "",
-      documentsReviewed: "",
-      weatherResearchSummary: "",
+      intervieweesNames: "",
+      providedDocumentsTitles: "",
+      additionalMethodologyNotes: "",
       ...initialData,
     },
   });
@@ -53,11 +51,9 @@ export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, Assignme
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       form.reset({
-        assignmentScope: "",
-        siteContact: "",
-        interviewees: "",
-        documentsReviewed: "",
-        weatherResearchSummary: "",
+        intervieweesNames: "",
+        providedDocumentsTitles: "",
+        additionalMethodologyNotes: "",
         ...initialData,
       });
     }
@@ -73,25 +69,52 @@ export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, Assignme
           onSubmit(formData);
         }} className="space-y-8">
           
-          {/* Assignment Scope */}
-          <div className="bg-blue-50 rounded-lg p-6 space-y-6">
+          {/* Methodology Overview */}
+          <div className="bg-blue-50 rounded-lg p-6 space-y-4">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-              <i className="fas fa-tasks text-blue-600 mr-2"></i>
-              Assignment Details
+              <i className="fas fa-clipboard-list text-blue-600 mr-2"></i>
+              Methodology
+            </h3>
+            
+            <div className="text-sm text-slate-700 space-y-2">
+              <p><strong>The collection and analysis of information for this project followed an application of engineering principles to the investigation analysis.</strong></p>
+              
+              <p><strong>The procedures followed included:</strong></p>
+              <ul className="list-disc ml-6 space-y-1">
+                <li>Upon receipt of the assignment, a site examination was conducted</li>
+                <li>Personnel were interviewed during the assessment</li>
+                <li>Provided documents were reviewed</li>
+                <li>Historical weather data was researched to determine size and location of the storm on the date of loss</li>
+                <li>This written report was authored at the client's request</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Interviewees */}
+          <div className="bg-green-50 rounded-lg p-6 space-y-6">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+              <i className="fas fa-users text-green-600 mr-2"></i>
+              Interviewees
             </h3>
             
             <FormField
               control={form.control}
-              name="assignmentScope"
+              name="intervieweesNames"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-semibold text-slate-900">
-                    Assignment Scope <span className="text-red-500">*</span>
+                    The following were interviewed:
                   </FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Describe the scope of this engineering assignment, including objectives, deliverables, and limitations..."
+                      placeholder="List individuals interviewed during the investigation:
+• Property owner
+• Insured
+• Witnesses
+• Property manager
+• Contractors
+• Other relevant parties..."
                       rows={4}
                       className="px-4 py-3"
                     />
@@ -102,84 +125,33 @@ export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, Assignme
             />
           </div>
 
-          {/* Site Contact Information */}
-          <div className="bg-green-50 rounded-lg p-6 space-y-6">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-              <i className="fas fa-user-friends text-green-600 mr-2"></i>
-              Site Contact & Personnel
-            </h3>
-            
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="siteContact"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-900">
-                      Site Contact
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Property Manager: John Smith, Phone: (555) 123-4567"
-                        className="px-4 py-3"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="interviewees"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-900">
-                      Interviewees
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        placeholder="List individuals interviewed during the investigation, including their roles and key information provided..."
-                        rows={3}
-                        className="px-4 py-3"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          {/* Documentation Review */}
+          {/* Provided Documents */}
           <div className="bg-amber-50 rounded-lg p-6 space-y-6">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center">
               <i className="fas fa-file-alt text-amber-600 mr-2"></i>
-              Documentation Review
+              Document Review
             </h3>
             
             <FormField
               control={form.control}
-              name="documentsReviewed"
+              name="providedDocumentsTitles"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-semibold text-slate-900">
-                    Documents Reviewed
+                    The following provided documents were reviewed:
                   </FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="List all documents reviewed, including:
+                      placeholder="List all documents reviewed during the investigation:
+• Insurance policy documentation
+• Previous inspection reports
 • Building plans and specifications
-• Inspection reports
 • Maintenance records
-• Previous engineering reports
-• Insurance documentation
 • Photographs and videos
-• Other relevant materials..."
-                      rows={6}
+• Weather reports
+• Other relevant documentation..."
+                      rows={5}
                       className="px-4 py-3"
                     />
                   </FormControl>
@@ -189,30 +161,26 @@ export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, Assignme
             />
           </div>
 
-          {/* Weather Research */}
+          {/* Additional Methodology Notes */}
           <div className="bg-purple-50 rounded-lg p-6 space-y-6">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-              <i className="fas fa-cloud-rain text-purple-600 mr-2"></i>
-              Weather Research Summary
+              <i className="fas fa-notes-medical text-purple-600 mr-2"></i>
+              Additional Methodology Notes
             </h3>
             
             <FormField
               control={form.control}
-              name="weatherResearchSummary"
+              name="additionalMethodologyNotes"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-semibold text-slate-900">
-                    Weather Research Summary
+                    Additional methodology details (Optional)
                   </FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Summarize weather research findings relevant to the loss event, including:
-• Weather conditions on the date of loss
-• Historical weather patterns
-• Severe weather events in the area
-• Wind speeds, precipitation, and other relevant meteorological data..."
-                      rows={5}
+                      placeholder="Add any additional methodology notes, special procedures, testing methods, or investigative techniques used..."
+                      rows={3}
                       className="px-4 py-3"
                     />
                   </FormControl>
@@ -239,7 +207,7 @@ export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, Assignme
               className="flex items-center px-8 py-3 bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
               disabled={isSaving}
             >
-              {isSaving ? "Saving..." : "Next: Building & Site Observations"}
+              {isSaving ? "Saving..." : "Next: Background & Observations"}
               <i className="fas fa-chevron-right ml-2"></i>
             </Button>
           </div>

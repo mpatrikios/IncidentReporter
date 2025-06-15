@@ -1,88 +1,148 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, index } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import mongoose, { Document, Schema } from "mongoose";
 import { z } from "zod";
 
-// User storage table with authentication fields
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  fullName: text("full_name"),
-  title: text("title"), // P.E., Engineer, etc.
-  isEngineer: boolean("is_engineer").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+// User Interface and Schema
+export interface IUser extends Document {
+  googleId: string;
+  email: string;
+  name: string;
+  picture?: string;
+  givenName?: string;
+  familyName?: string;
+  title?: string; // P.E., Engineer, etc.
+  company?: string;
+  isEngineer: boolean;
+  googleAccessToken?: string;
+  googleRefreshToken?: string;
+  tokenExpiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const userSchema = new Schema<IUser>({
+  googleId: { type: String, required: true, unique: true, index: true },
+  email: { type: String, required: true, unique: true, index: true },
+  name: { type: String, required: true },
+  picture: { type: String },
+  givenName: { type: String },
+  familyName: { type: String },
+  title: { type: String }, // P.E., Engineer, etc.
+  company: { type: String },
+  isEngineer: { type: Boolean, default: false },
+  googleAccessToken: { type: String, select: false }, // Don't include in queries by default for security
+  googleRefreshToken: { type: String, select: false }, // Don't include in queries by default for security
+  tokenExpiresAt: { type: Date },
+}, {
+  timestamps: true // Automatically adds createdAt and updatedAt
 });
 
-export const reports = pgTable("reports", {
-  id: serial("id").primaryKey(),
-  projectId: text("project_id").notNull().unique(),
-  title: text("title").notNull(),
-  reportType: text("report_type").notNull(), // structural, transportation, water, geotechnical
-  status: text("status").notNull().default("draft"), // draft, in_review, approved, completed
-  createdBy: integer("created_by").notNull(),
-  assignedEngineer: integer("assigned_engineer"),
-  formData: jsonb("form_data"),
-  googleDocId: text("google_doc_id"),
-  pdfUrl: text("pdf_url"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+export const User = mongoose.model<IUser>('User', userSchema);
+
+// Report Interface and Schema
+export interface IReport extends Document {
+  projectId: string;
+  title: string;
+  reportType: string; // structural, transportation, water, geotechnical
+  status: string; // draft, in_review, approved, completed
+  userId: mongoose.Types.ObjectId;
+  assignedEngineer?: mongoose.Types.ObjectId;
+  formData?: any;
+  googleDocId?: string;
+  pdfUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const reportSchema = new Schema<IReport>({
+  projectId: { type: String, required: true, unique: true, index: true },
+  title: { type: String, required: true },
+  reportType: { type: String, required: true }, // structural, transportation, water, geotechnical
+  status: { type: String, required: true, default: "draft", index: true }, // draft, in_review, approved, completed
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  assignedEngineer: { type: Schema.Types.ObjectId, ref: 'User' },
+  formData: { type: Schema.Types.Mixed },
+  googleDocId: { type: String },
+  pdfUrl: { type: String },
+}, {
+  timestamps: true
 });
 
-export const formSteps = pgTable("form_steps", {
-  id: serial("id").primaryKey(),
-  reportId: integer("report_id").notNull(),
-  stepNumber: integer("step_number").notNull(),
-  stepName: text("step_name").notNull(),
-  isCompleted: boolean("is_completed").default(false),
-  data: jsonb("data"),
+export const Report = mongoose.model<IReport>('Report', reportSchema);
+
+// Form Step Interface and Schema
+export interface IFormStep extends Document {
+  reportId: mongoose.Types.ObjectId;
+  stepNumber: number;
+  stepName: string;
+  isCompleted: boolean;
+  data?: any;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const formStepSchema = new Schema<IFormStep>({
+  reportId: { type: Schema.Types.ObjectId, ref: 'Report', required: true, index: true },
+  stepNumber: { type: Number, required: true },
+  stepName: { type: String, required: true },
+  isCompleted: { type: Boolean, default: false },
+  data: { type: Schema.Types.Mixed },
+}, {
+  timestamps: true
 });
+
+// Compound index for efficient queries
+formStepSchema.index({ reportId: 1, stepNumber: 1 }, { unique: true });
+
+export const FormStep = mongoose.model<IFormStep>('FormStep', formStepSchema);
 
 // Form data schemas based on Civil Engineering Report template
 export const projectInformationSchema = z.object({
+  fileNumber: z.string().min(1, "EFI Global file number is required"),
+  dateOfCreation: z.string().min(1, "Date of creation is required"),
   insuredName: z.string().min(1, "Insured name is required"),
   insuredAddress: z.string().min(1, "Insured address is required"),
-  fileNumber: z.string().min(1, "File number is required"),
+  dateOfLoss: z.string().min(1, "Date of loss is required"),
   claimNumber: z.string().min(1, "Claim number is required"),
   clientCompany: z.string().min(1, "Client company is required"),
-  clientContactName: z.string().min(1, "Client contact name is required"),
-  clientEmail: z.string().email("Valid email is required"),
-  dateOfLoss: z.string().min(1, "Date of loss is required"),
-  siteVisitDate: z.string().min(1, "Site visit date is required"),
+  clientContact: z.string().min(1, "Client contact name is required"),
   engineerName: z.string().min(1, "Engineer name is required"),
-  technicalReviewerName: z.string().optional(),
+  technicalReviewer: z.string().min(1, "Technical reviewer is required"),
+  receivedDate: z.string().min(1, "Assignment received date is required"),
+  siteVisitDate: z.string().min(1, "Site visit date is required"),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
 });
 
 export const assignmentScopeSchema = z.object({
-  assignmentScope: z.string().min(1, "Assignment scope is required"),
-  siteContact: z.string().optional(),
-  interviewees: z.string().optional(),
-  documentsReviewed: z.string().optional(),
-  weatherResearchSummary: z.string().optional(),
+  intervieweesNames: z.string().optional(),
+  providedDocumentsTitles: z.string().optional(),
+  additionalMethodologyNotes: z.string().optional(),
 });
 
 export const buildingAndSiteSchema = z.object({
-  structureAge: z.string().optional(),
-  squareFootage: z.string().optional(),
-  roofType: z.string().optional(),
-  ventilationDescription: z.string().optional(),
-  buildingDescription: z.string().min(1, "Building description is required"),
-  exteriorObservations: z.string().optional(),
-  interiorObservations: z.string().optional(),
-  crawlspaceObservations: z.string().optional(),
-  siteObservations: z.string().optional(),
+  structureBuiltDate: z.string().min(1, "Structure built date is required"),
+  structureAge: z.string().min(1, "Structure age is required"),
+  buildingSystemDescription: z.string().min(1, "Building system description is required"),
+  frontFacingDirection: z.string().min(1, "Front facing direction is required"),
+  exteriorObservations: z.string().min(1, "Exterior observations are required"),
+  interiorObservations: z.string().min(1, "Interior observations are required"),
+  otherSiteObservations: z.string().optional(),
 });
 
 export const researchSchema = z.object({
-  weatherDataSummary: z.string().optional(),
-  corelogicDataSummary: z.string().optional(),
+  weatherDataSummary: z.string().min(1, "Weather data summary is required"),
+  corelogicHailSummary: z.string().min(1, "CoreLogic hail summary is required"),
+  corelogicWindSummary: z.string().min(1, "CoreLogic wind summary is required"),
 });
 
 export const discussionAndAnalysisSchema = z.object({
-  discussionAndAnalysis: z.string().min(1, "Discussion and analysis is required"),
+  siteDiscussionAnalysis: z.string().min(1, "Site discussion and analysis is required"),
+  weatherDiscussionAnalysis: z.string().min(1, "Weather discussion and analysis is required"),
+  weatherImpactAnalysis: z.string().min(1, "Weather impact analysis is required"),
+  recommendationsAndDiscussion: z.string().optional(),
 });
 
 export const conclusionsSchema = z.object({
@@ -98,33 +158,46 @@ export const completeFormDataSchema = z.object({
   conclusions: conclusionsSchema,
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
+// Zod schemas for validation
+export const googleUserSchema = z.object({
+  googleId: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  picture: z.string().url().optional(),
+  givenName: z.string().optional(),
+  familyName: z.string().optional(),
+  title: z.string().optional(),
+  company: z.string().optional(),
+  isEngineer: z.boolean().default(false),
+  googleAccessToken: z.string().optional(),
+  googleRefreshToken: z.string().optional(),
+  tokenExpiresAt: z.date().optional(),
 });
 
-// Create a more flexible schema for report creation
-export const insertReportSchema = z.object({
+export const createReportSchema = z.object({
   title: z.string().optional(),
   reportType: z.string().optional(), 
   status: z.string().optional(),
   projectId: z.string().optional(),
-  createdBy: z.number().optional(),
-  assignedEngineer: z.number().nullable().optional(),
+  userId: z.string().optional(),
+  assignedEngineer: z.string().nullable().optional(),
   formData: z.any().optional(),
   googleDocId: z.string().nullable().optional(),
   pdfUrl: z.string().nullable().optional(),
 });
 
-export const insertFormStepSchema = createInsertSchema(formSteps).omit({
-  id: true,
+export const createFormStepSchema = z.object({
+  reportId: z.string(),
+  stepNumber: z.number(),
+  stepName: z.string(),
+  isCompleted: z.boolean().optional(),
+  data: z.any().optional(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-export type InsertReport = z.infer<typeof insertReportSchema>;
-export type Report = typeof reports.$inferSelect;
-export type InsertFormStep = z.infer<typeof insertFormStepSchema>;
-export type FormStep = typeof formSteps.$inferSelect;
+// Type exports
+export type GoogleUser = z.infer<typeof googleUserSchema>;
+export type CreateReport = z.infer<typeof createReportSchema>;
+export type CreateFormStep = z.infer<typeof createFormStepSchema>;
 
 export type ProjectInformation = z.infer<typeof projectInformationSchema>;
 export type AssignmentScope = z.infer<typeof assignmentScopeSchema>;
@@ -139,3 +212,9 @@ export type SiteAnalysis = AssignmentScope;
 export type DesignSpecifications = BuildingAndSite;
 export type Calculations = Research;
 export type ReviewAttachments = Conclusions;
+
+// Legacy schema exports for backward compatibility
+export const siteAnalysisSchema = assignmentScopeSchema;
+export const designSpecificationsSchema = buildingAndSiteSchema;
+export const calculationsSchema = researchSchema;
+export const reviewAttachmentsSchema = conclusionsSchema;

@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useFormPersistence } from "./use-form-persistence";
 
 export function useAutoSave(
-  reportId: number | null | undefined,
+  reportId: string | null | undefined,
   stepNumber: number,
   formData: any,
   delay: number = 2000 // Auto-save after 2 seconds of inactivity

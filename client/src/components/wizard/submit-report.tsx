@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,10 @@ import { CheckCircle, FileText, Save, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface SubmitReportProps {
-  reportId: number;
+  reportId: string;
   onPrevious: () => void;
   formData: any;
   initialTitle?: string;
@@ -21,6 +22,30 @@ export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle 
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Auto-save the title directly to the report record
+  useEffect(() => {
+    if (!reportTitle.trim() || reportTitle === initialTitle) return;
+    
+    const timeoutId = setTimeout(async () => {
+      try {
+        await apiRequest("PATCH", `/api/reports/${reportId}`, {
+          title: reportTitle.trim(),
+        });
+      } catch (error) {
+        console.error("Failed to auto-save title:", error);
+      }
+    }, 1000); // Debounce for 1 second
+
+    return () => clearTimeout(timeoutId);
+  }, [reportTitle, reportId, initialTitle]);
+
+  // Update title when initialTitle changes
+  useEffect(() => {
+    if (initialTitle) {
+      setReportTitle(initialTitle);
+    }
+  }, [initialTitle]);
 
 
   const handleGenerateDoc = async () => {

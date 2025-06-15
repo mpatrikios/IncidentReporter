@@ -1,8 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import passport from "passport";
+import { requireAuth } from "./auth";
 import { storage } from "./storage";
 import { 
-  insertFormStepSchema,
+  createFormStepSchema,
   projectInformationSchema,
   assignmentScopeSchema,
   buildingAndSiteSchema,
@@ -11,75 +13,64 @@ import {
   conclusionsSchema
 } from "@shared/schema";
 import { z } from "zod";
+import mongoose from "mongoose";
+import { noaaService } from "./services/noaaService";
+
+// Utility function to validate ObjectId
+function isValidObjectId(id: string): boolean {
+  return mongoose.Types.ObjectId.isValid(id);
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Authentication routes
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-      
-      const user = await storage.validateUser(username, password);
-      
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-      
-      // Set user session (simplified - in production use proper session management)
-      req.session = req.session || {};
-      req.session.userId = user.id;
-      req.session.user = user;
-      
-      // Don't send password in response
-      const { password: _, ...userWithoutPassword } = user;
-      res.json({ user: userWithoutPassword, message: "Login successful" });
-    } catch (error) {
-      res.status(500).json({ message: "Login failed" });
-    }
-  });
+  // Google OAuth routes
+  app.get('/auth/google',
+    passport.authenticate('google', { 
+      scope: [
+        'profile', 
+        'email', 
+        'https://www.googleapis.com/auth/docs',
+        'https://www.googleapis.com/auth/drive.file'
+      ] 
+    })
+  );
 
-  app.post("/api/auth/logout", async (req, res) => {
-    req.session = null;
-    res.json({ message: "Logout successful" });
+  app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    (req, res) => {
+      // Successful authentication, redirect to dashboard
+      res.redirect('/dashboard');
+    }
+  );
+
+  // Authentication routes
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      req.session?.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ message: "Session cleanup failed" });
+        }
+        res.json({ message: "Logout successful" });
+      });
+    });
   });
 
   // Get current user
-  app.get("/api/auth/user", async (req, res) => {
-    try {
-      const userId = req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Don't send password in response
-      const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get user" });
+  app.get("/api/auth/user", (req, res) => {
+    if (req.isAuthenticated()) {
+      res.json(req.user);
+    } else {
+      res.status(401).json({ message: "Not authenticated" });
     }
   });
 
-  // Middleware to check authentication
-  const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
-    next();
-  };
-
   // Get user reports
-  app.get("/api/reports", async (req, res) => {
+  app.get("/api/reports", requireAuth, async (req, res) => {
     try {
-      const userId = 1; // Mock user ID
+      const userId = (req.user as any)._id.toString();
       const reports = await storage.getReportsByUser(userId);
       res.json(reports);
     } catch (error) {
@@ -88,8 +79,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new report
-  app.post("/api/reports", async (req, res) => {
+  app.post("/api/reports", requireAuth, async (req, res) => {
     try {
+      const userId = (req.user as any)._id.toString();
+      
       // Generate project ID and set default values
       const projectId = `CE-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
       
@@ -99,11 +92,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reportType: req.body.reportType || "structural", 
         status: req.body.status || "draft",
         projectId,
-        createdBy: 1, // Mock user ID
-        assignedEngineer: req.body.assignedEngineer || null,
-        formData: req.body.formData || null,
-        googleDocId: req.body.googleDocId || null,
-        pdfUrl: req.body.pdfUrl || null,
+        userId: userId,
+        assignedEngineer: req.body.assignedEngineer || undefined,
+        formData: req.body.formData || undefined,
+        googleDocId: req.body.googleDocId || undefined,
+        pdfUrl: req.body.pdfUrl || undefined,
       };
       
       const report = await storage.createReport(reportData);
@@ -141,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get specific report
   app.get("/api/reports/:id", async (req, res) => {
     try {
-      const reportId = parseInt(req.params.id);
+      const reportId = req.params.id;
       const report = await storage.getReport(reportId);
       
       if (!report) {
@@ -157,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update report
   app.patch("/api/reports/:id", async (req, res) => {
     try {
-      const reportId = parseInt(req.params.id);
+      const reportId = req.params.id;
       const updates = req.body;
       
       const report = await storage.updateReport(reportId, updates);
@@ -175,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get form steps for a report
   app.get("/api/reports/:id/steps", async (req, res) => {
     try {
-      const reportId = parseInt(req.params.id);
+      const reportId = req.params.id;
       const steps = await storage.getFormSteps(reportId);
       res.json(steps);
     } catch (error) {
@@ -186,8 +179,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update form step
   app.patch("/api/reports/:reportId/steps/:stepNumber", async (req, res) => {
     try {
-      const reportId = parseInt(req.params.reportId);
+      const reportId = req.params.reportId;
       const stepNumber = parseInt(req.params.stepNumber);
+      
+      if (!isValidObjectId(reportId)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
       const { data, isCompleted } = req.body;
 
       // For auto-save (when isCompleted is false), use partial validation
@@ -245,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Save completed report
   app.post("/api/reports/:id/save", async (req, res) => {
     try {
-      const reportId = parseInt(req.params.id);
+      const reportId = req.params.id;
       const { title } = req.body;
       
       if (!title || !title.trim()) {
@@ -299,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Submit report for review (kept for backward compatibility)
   app.post("/api/reports/:id/submit", async (req, res) => {
     try {
-      const reportId = parseInt(req.params.id);
+      const reportId = req.params.id;
       
       // Get all form steps to compile complete form data
       const steps = await storage.getFormSteps(reportId);
@@ -351,9 +348,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate Google Doc from template
-  app.post("/api/reports/:id/generate-doc", async (req, res) => {
+  app.post("/api/reports/:id/generate-doc", requireAuth, async (req, res) => {
     try {
-      const reportId = parseInt(req.params.id);
+      const reportId = req.params.id;
+      const userId = (req.user as any)._id.toString();
+      
+      if (!isValidObjectId(reportId)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
       
       const report = await storage.getReport(reportId);
       
@@ -363,15 +365,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Import the Google Docs service
       const { googleDocsService } = await import('./services/googleDocsService.js');
-      
-      // Check if authenticated
-      const isAuthenticated = await googleDocsService.isAuthenticated();
-      if (!isAuthenticated) {
-        return res.status(401).json({ 
-          message: "Google API not authenticated", 
-          authUrl: googleDocsService.getAuthUrl() 
-        });
-      }
 
       // Access report data from formData field or compile from steps
       const formData = report.formData as any;
@@ -420,8 +413,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate report title
       const reportTitle = `Civil Engineering Report - ${formData?.projectInformation?.insuredName || 'Report'} - ${new Date().toLocaleDateString()}`;
 
-      // Generate from configured template
-      const googleDocId = await googleDocsService.generateFromTemplate(reportData, reportTitle);
+      // Generate from configured template using user's credentials
+      const googleDocId = await googleDocsService.generateFromTemplate(userId, reportData, reportTitle);
       
       if (!googleDocId) {
         throw new Error('Failed to generate document');
@@ -494,7 +487,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete report
   app.delete("/api/reports/:id", async (req, res) => {
     try {
-      const reportId = parseInt(req.params.id);
+      const reportId = req.params.id;
+      
+      if (!isValidObjectId(reportId)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
       
       // Check if report exists
       const report = await storage.getReport(reportId);
@@ -512,6 +509,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting report:', error);
       res.status(500).json({ message: "Failed to delete report" });
+    }
+  });
+
+  // NOAA Storm Data API endpoint
+  app.post("/api/storm-data", requireAuth, async (req, res) => {
+    try {
+      const { latitude, longitude, date, radiusKm } = req.body;
+
+      if (!latitude || !longitude || !date) {
+        return res.status(400).json({ 
+          message: "Latitude, longitude, and date are required" 
+        });
+      }
+
+      const stormData = await noaaService.getStormEvents({
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        date: date,
+        radiusKm: radiusKm || 50
+      });
+
+      res.json(stormData);
+    } catch (error) {
+      console.error('Error fetching storm data:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch storm data",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get weather stations for a location
+  app.get("/api/weather-stations", requireAuth, async (req, res) => {
+    try {
+      const { latitude, longitude } = req.query;
+
+      if (!latitude || !longitude) {
+        return res.status(400).json({ 
+          message: "Latitude and longitude are required" 
+        });
+      }
+
+      const stations = await noaaService.getWeatherStations(
+        parseFloat(latitude as string),
+        parseFloat(longitude as string)
+      );
+
+      res.json(stations);
+    } catch (error) {
+      console.error('Error fetching weather stations:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch weather stations",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

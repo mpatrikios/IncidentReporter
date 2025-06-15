@@ -19,7 +19,7 @@ interface ConclusionsProps {
   initialData?: Partial<Conclusions>;
   onSubmit: (data: Conclusions) => void;
   onPrevious?: () => void;
-  reportId?: number | null;
+  reportId?: string | null;
   formData?: any;
   initialTitle?: string;
   steps?: any[];
@@ -39,6 +39,30 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Auto-save the title directly to the report record
+  useEffect(() => {
+    if (!reportTitle.trim() || reportTitle === initialTitle) return;
+    
+    const timeoutId = setTimeout(async () => {
+      try {
+        await apiRequest("PATCH", `/api/reports/${reportId}`, {
+          title: reportTitle.trim(),
+        });
+      } catch (error) {
+        console.error("Failed to auto-save title:", error);
+      }
+    }, 1000); // Debounce for 1 second
+
+    return () => clearTimeout(timeoutId);
+  }, [reportTitle, reportId, initialTitle]);
+
+  // Update title when initialTitle changes
+  useEffect(() => {
+    if (initialTitle) {
+      setReportTitle(initialTitle);
+    }
+  }, [initialTitle]);
 
   const form = useForm<Conclusions>({
     resolver: zodResolver(conclusionsSchema),

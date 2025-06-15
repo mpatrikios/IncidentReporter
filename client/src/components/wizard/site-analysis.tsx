@@ -15,7 +15,7 @@ interface SiteAnalysisProps {
   initialData?: Partial<SiteAnalysis>;
   onSubmit: (data: SiteAnalysis) => void;
   onPrevious?: () => void;
-  reportId?: number | null;
+  reportId?: string | null;
 }
 
 export const SiteAnalysisStep = forwardRef<StepRef<SiteAnalysis>, SiteAnalysisProps>(({ 

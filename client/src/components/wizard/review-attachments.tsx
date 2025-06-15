@@ -13,7 +13,7 @@ interface ReviewAttachmentsProps {
   initialData?: Partial<ReviewAttachments>;
   onSubmit: (data: ReviewAttachments) => void;
   onPrevious?: () => void;
-  reportId?: number | null;
+  reportId?: string | null;
 }
 
 export const ReviewAttachmentsStep = forwardRef<StepRef<ReviewAttachments>, ReviewAttachmentsProps>(({ 

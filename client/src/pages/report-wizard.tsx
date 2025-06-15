@@ -43,7 +43,7 @@ export default function ReportWizard() {
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const editReportId = urlParams.get('edit');
   const pathReportId = id; // From /reports/:id route
-  const reportId = editReportId ? parseInt(editReportId) : (pathReportId ? parseInt(pathReportId) : null);
+  const reportId = editReportId || pathReportId || null;
   
   
   const { saveFormData, formatLastSaved } = useFormPersistence(reportId);
@@ -68,7 +68,7 @@ export default function ReportWizard() {
       return response.json();
     },
     onSuccess: (newReport) => {
-      setLocation(`/reports/${newReport.id}`);
+      setLocation(`/reports/${newReport._id}`);
       queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
     },
     onError: () => {
@@ -250,6 +250,8 @@ export default function ReportWizard() {
             onSubmit={(data) => handleStepSubmit(4, data)}
             onPrevious={() => goToStep(3)}
             reportId={reportId}
+            formData={report?.formData || {} as Record<string, any>}
+            steps={steps}
           />
         );
       case 5:

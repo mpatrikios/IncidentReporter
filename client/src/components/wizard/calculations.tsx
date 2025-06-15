@@ -15,7 +15,7 @@ interface CalculationsProps {
   initialData?: Partial<Calculations>;
   onSubmit: (data: Calculations) => void;
   onPrevious?: () => void;
-  reportId?: number | null;
+  reportId?: string | null;
 }
 
 export const CalculationsStep = forwardRef<StepRef<Calculations>, CalculationsProps>(({ 

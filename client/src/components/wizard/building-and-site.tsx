@@ -13,7 +13,7 @@ interface BuildingAndSiteProps {
   initialData?: Partial<BuildingAndSite>;
   onSubmit: (data: BuildingAndSite) => void;
   onPrevious?: () => void;
-  reportId?: number | null;
+  reportId?: string | null;
 }
 
 export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, BuildingAndSiteProps>(({ 
@@ -25,15 +25,13 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
   const form = useForm<BuildingAndSite>({
     resolver: zodResolver(buildingAndSiteSchema),
     defaultValues: {
+      structureBuiltDate: "",
       structureAge: "",
-      squareFootage: "",
-      roofType: "",
-      ventilationDescription: "",
-      buildingDescription: "",
+      buildingSystemDescription: "",
+      frontFacingDirection: "",
       exteriorObservations: "",
       interiorObservations: "",
-      crawlspaceObservations: "",
-      siteObservations: "",
+      otherSiteObservations: "",
       ...initialData,
     },
   });
@@ -54,15 +52,13 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       form.reset({
+        structureBuiltDate: "",
         structureAge: "",
-        squareFootage: "",
-        roofType: "",
-        ventilationDescription: "",
-        buildingDescription: "",
+        buildingSystemDescription: "",
+        frontFacingDirection: "",
         exteriorObservations: "",
         interiorObservations: "",
-        crawlspaceObservations: "",
-        siteObservations: "",
+        otherSiteObservations: "",
         ...initialData,
       });
     }
@@ -77,72 +73,48 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
           onSubmit(formData);
         }} className="space-y-8">
           
-          {/* Building Description */}
+          {/* Background Information */}
           <div className="bg-blue-50 rounded-lg p-6 space-y-6">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-              <i className="fas fa-building text-blue-600 mr-2"></i>
-              Building Description
+              <i className="fas fa-info-circle text-blue-600 mr-2"></i>
+              Background Information
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="structureBuiltDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold text-slate-900">
+                      Structure Built Date <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="1995" 
+                        className="px-4 py-3" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="structureAge"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-semibold text-slate-900">
-                      Structure Age
+                      Structure Age <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Built in 1995 (29 years old)" className="px-4 py-3" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="squareFootage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-900">
-                      Square Footage
-                    </FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="2,500 sq ft" className="px-4 py-3" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="roofType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-900">
-                      Roof Type
-                    </FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Asphalt shingle, gable roof" className="px-4 py-3" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="ventilationDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-900">
-                      Ventilation Description
-                    </FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Ridge vents, soffit vents" className="px-4 py-3" />
+                      <Input 
+                        {...field} 
+                        placeholder="29 years old" 
+                        className="px-4 py-3" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -152,17 +124,55 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
 
             <FormField
               control={form.control}
-              name="buildingDescription"
+              name="frontFacingDirection"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-semibold text-slate-900">
-                    Building Description <span className="text-red-500">*</span>
+                    Front Facing Direction <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="north, south, east, west, etc." 
+                      className="px-4 py-3" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-xs text-slate-500 mt-1">
+                    All directional references in the report will be made from the perspective of one facing the front of the structure from the street.
+                  </p>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Building System Description */}
+          <div className="bg-amber-50 rounded-lg p-6 space-y-6">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+              <i className="fas fa-building text-amber-600 mr-2"></i>
+              Building System Description
+            </h3>
+            
+            <FormField
+              control={form.control}
+              name="buildingSystemDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-semibold text-slate-900">
+                    Building System Description <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Detailed description of the building structure, materials, construction type, and general condition..."
-                      rows={4}
+                      placeholder="Detailed description of the building system including:
+• Construction type and materials
+• Roof system and materials
+• Foundation type
+• Structural elements
+• Age and condition of building systems
+• Previous repairs or modifications
+• Any notable features or deficiencies..."
+                      rows={6}
                       className="px-4 py-3"
                     />
                   </FormControl>
@@ -179,19 +189,31 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
               Site Observations
             </h3>
             
+            <div className="text-sm text-slate-700 mb-4">
+              <p><strong>Observations were limited to visual examinations and measurements of accessible portions of the subject property.</strong> Removal of finish materials, qualitative testing, excavation, or other work not specifically described herein was not conducted.</p>
+              <p className="mt-2">Observations were photographed to document distress and relevant conditions at the subject property on the date of the site visit.</p>
+            </div>
+
             <FormField
               control={form.control}
               name="exteriorObservations"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-semibold text-slate-900">
-                    Exterior Observations
+                    Exterior Observations <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Detailed observations of exterior conditions, damage, and structural elements..."
-                      rows={4}
+                      placeholder="Detailed exterior observations including:
+• Roof condition and damage
+• Siding and exterior wall conditions
+• Foundation observations
+• Gutters and downspouts
+• Windows and doors
+• Evidence of wind or hail damage
+• Overall structural condition..."
+                      rows={5}
                       className="px-4 py-3"
                     />
                   </FormControl>
@@ -206,55 +228,47 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-semibold text-slate-900">
-                    Interior Observations
+                    Interior Observations <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Detailed observations of interior conditions, damage, and structural elements..."
+                      placeholder="Detailed interior observations including:
+• Ceiling conditions and water stains
+• Wall conditions
+• Flooring conditions
+• Evidence of leaking or water damage
+• Structural elements visible
+• HVAC systems
+• Overall interior condition..."
+                      rows={5}
+                      className="px-4 py-3"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="otherSiteObservations"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-semibold text-slate-900">
+                    Other Site Observations
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Additional site observations including:
+• Landscaping and grading
+• Drainage conditions
+• Surrounding structures
+• Access conditions
+• Security features
+• Other relevant site conditions..."
                       rows={4}
-                      className="px-4 py-3"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="crawlspaceObservations"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-semibold text-slate-900">
-                    Crawlspace Observations
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Observations of crawlspace conditions, if accessible..."
-                      rows={3}
-                      className="px-4 py-3"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="siteObservations"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-semibold text-slate-900">
-                    Site Observations
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="General site observations, drainage, landscaping, surrounding conditions..."
-                      rows={3}
                       className="px-4 py-3"
                     />
                   </FormControl>
@@ -272,7 +286,7 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
               className="flex items-center px-6 py-3"
             >
               <i className="fas fa-chevron-left mr-2"></i>
-              Previous: Assignment Scope
+              Previous: Methodology
             </Button>
             
             <Button 

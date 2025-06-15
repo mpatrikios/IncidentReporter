@@ -15,9 +15,19 @@ export default function Home() {
   const { user } = useAuth();
   const logout = useLogout();
   const [, setLocation] = useLocation();
-  const [reports, setReports] = useState<any[]>([]);
-  const [isLoadingReports, setIsLoadingReports] = useState(true);
   const { toast } = useToast();
+  
+  // Use React Query to fetch reports with proper caching and refetching
+  const { data: reports = [], isLoading: isLoadingReports, refetch: refetchReports } = useQuery({
+    queryKey: ["reports"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/reports");
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 0, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
+  });
 
   const handleLogout = () => {
     logout.mutate();
@@ -27,16 +37,16 @@ export default function Home() {
     setLocation("/report-wizard");
   };
 
-  const handleEditReport = (reportId: number) => {
+  const handleEditReport = (reportId: string) => {
     setLocation(`/reports/${reportId}`);
   };
 
-  const handleDeleteReport = async (reportId: number, reportTitle: string) => {
+  const handleDeleteReport = async (reportId: string, reportTitle: string) => {
     try {
       await apiRequest("DELETE", `/api/reports/${reportId}`);
       
-      // Remove the report from the local state
-      setReports(prevReports => prevReports.filter(report => report.id !== reportId));
+      // Refetch the reports list to show updated data
+      refetchReports();
       
       toast({
         title: "Report Deleted",
@@ -52,25 +62,6 @@ export default function Home() {
   };
 
   // Fetch user reports
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        setIsLoadingReports(true);
-        const response = await apiRequest("GET", "/api/reports");
-        const data = await response.json();
-        // Ensure we always have an array
-        const reportsData = Array.isArray(data) ? data : [];
-        setReports(reportsData);
-      } catch (error) {
-        console.error("Failed to fetch reports:", error);
-        setReports([]);
-      } finally {
-        setIsLoadingReports(false);
-      }
-    };
-
-    fetchReports();
-  }, []);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -268,7 +259,7 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.isArray(reports) && reports.map((report: any) => (
-                <Card key={report.id} className="bg-white border-2 border-grey-200 shadow-lg hover:shadow-xl transition-all duration-200">
+                <Card key={report._id} className="bg-white border-2 border-grey-200 shadow-lg hover:shadow-xl transition-all duration-200">
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start mb-2">
                       <CardTitle className="text-lg text-grey-900 line-clamp-2">
@@ -290,7 +281,7 @@ export default function Home() {
                     <div className="flex gap-2">
                       <Button 
                         size="sm" 
-                        onClick={() => handleEditReport(report.id)}
+                        onClick={() => handleEditReport(report._id)}
                         className="flex-1 bg-blue-700 hover:bg-blue-800 text-white"
                       >
                         <Edit className="h-3 w-3 mr-1" />
@@ -336,7 +327,7 @@ export default function Home() {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDeleteReport(report.id, report.title || `Report ${report.projectId}`)}
+                              onClick={() => handleDeleteReport(report._id, report.title || `Report ${report.projectId}`)}
                               className="bg-red-600 hover:bg-red-700"
                             >
                               Delete Report
