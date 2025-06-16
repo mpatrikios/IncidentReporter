@@ -25,20 +25,6 @@ function isValidObjectId(id: string): boolean {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
-<<<<<<< HEAD
-  // Google OAuth routes
-  app.get('/auth/google',
-    passport.authenticate('google', { 
-      scope: [
-        'profile', 
-        'email', 
-        'https://www.googleapis.com/auth/docs',
-        'https://www.googleapis.com/auth/drive'
-      ] 
-    })
-  );
-=======
   // Google OAuth routes - only register if Google OAuth is configured
   let isGoogleOAuthConfigured = false;
   try {
@@ -60,7 +46,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ] 
       })
     );
->>>>>>> 5d73c6f (Handle missing Google authentication setup gracefully during login process)
 
     app.get('/auth/google/callback',
       passport.authenticate('google', { failureRedirect: '/login' }),
