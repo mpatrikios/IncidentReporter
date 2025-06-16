@@ -15,6 +15,7 @@ import {
 import { z } from "zod";
 import mongoose from "mongoose";
 import { noaaService } from "./services/noaaService";
+import { aiTextService } from "./services/aiTextService";
 
 // Utility function to validate ObjectId
 function isValidObjectId(id: string): boolean {
@@ -30,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'profile', 
         'email', 
         'https://www.googleapis.com/auth/docs',
-        'https://www.googleapis.com/auth/drive.file'
+        'https://www.googleapis.com/auth/drive'
       ] 
     })
   );
@@ -239,6 +240,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Text Generation endpoint
+  app.post("/api/ai/generate-text", requireAuth, async (req, res) => {
+    try {
+      const { bulletPoints, fieldType, context } = req.body;
+
+      if (!bulletPoints || typeof bulletPoints !== 'string') {
+        return res.status(400).json({ message: "Bullet points are required" });
+      }
+
+      if (!fieldType || typeof fieldType !== 'string') {
+        return res.status(400).json({ message: "Field type is required" });
+      }
+
+      if (!aiTextService.isConfigured()) {
+        return res.status(503).json({ 
+          message: "AI text generation is not configured. Please contact administrator." 
+        });
+      }
+
+      const generatedText = await aiTextService.generateParagraph({
+        bulletPoints,
+        fieldType,
+        context
+      });
+
+      res.json({ generatedText });
+    } catch (error) {
+      console.error('AI text generation error:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to generate text" 
+      });
+    }
+  });
+
   // Save completed report
   app.post("/api/reports/:id/save", async (req, res) => {
     try {
@@ -352,6 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reportId = req.params.id;
       const userId = (req.user as any)._id.toString();
+      const { aiEnhanceText } = req.body;
       
       if (!isValidObjectId(reportId)) {
         return res.status(400).json({ message: "Invalid report ID" });
@@ -414,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reportTitle = `Civil Engineering Report - ${formData?.projectInformation?.insuredName || 'Report'} - ${new Date().toLocaleDateString()}`;
 
       // Generate from configured template using user's credentials
-      const googleDocId = await googleDocsService.generateFromTemplate(userId, reportData, reportTitle);
+      const googleDocId = await googleDocsService.generateFromTemplate(userId, reportData, reportTitle, aiEnhanceText);
       
       if (!googleDocId) {
         throw new Error('Failed to generate document');

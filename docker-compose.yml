@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - NOAA_CDO_API_KEY=${NOAA_CDO_API_KEY}
+    volumes:
+      - ./server/config:/app/server/config:ro
+    restart: unless-stopped
+
+  # Optional: Local MongoDB (if not using Atlas)
+  # mongodb:
+  #   image: mongo:5
+  #   ports:
+  #     - "27017:27017"
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=admin
+  #     - MONGO_INITDB_ROOT_PASSWORD=password
+  #   volumes:
+  #     - mongodb_data:/data/db
+
+# volumes:
+#   mongodb_data:

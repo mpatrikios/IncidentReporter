@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, FileText, Save, Clock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CheckCircle, FileText, Save, Clock, Wand2 } from "lucide-react";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -37,6 +38,7 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
   const [reportTitle, setReportTitle] = useState(initialTitle || "");
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
+  const [aiEnhanceText, setAiEnhanceText] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -99,7 +101,9 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
     setIsGeneratingDoc(true);
     try {
       console.log('DEBUG: Making API request to generate doc...');
-      const response = await apiRequest("POST", `/api/reports/${reportId}/generate-doc`);
+      const response = await apiRequest("POST", `/api/reports/${reportId}/generate-doc`, {
+        aiEnhanceText
+      });
       console.log('DEBUG: Raw API response:', response);
       
       const data = await response.json();
@@ -201,23 +205,23 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
   const completedSections = [
     { 
       name: "Project Information", 
-      completed: hasRequiredData(1, ['insuredName', 'insuredAddress', 'fileNumber', 'claimNumber', 'clientCompany', 'clientContactName', 'clientEmail', 'dateOfLoss', 'siteVisitDate', 'engineerName']) 
+      completed: hasRequiredData(1, ['insuredName', 'insuredAddress', 'fileNumber', 'claimNumber', 'clientCompany', 'clientContact', 'dateOfLoss', 'siteVisitDate', 'engineerName']) 
     },
     { 
       name: "Assignment Scope", 
-      completed: hasRequiredData(2, ['assignmentScope']) 
+      completed: hasAnyData(2, ['intervieweesNames', 'providedDocumentsTitles', 'additionalMethodologyNotes']) 
     },
     { 
       name: "Building & Site Observations", 
-      completed: hasRequiredData(3, ['buildingDescription']) 
+      completed: hasRequiredData(3, ['buildingSystemDescription', 'exteriorObservations', 'interiorObservations']) 
     },
     { 
       name: "Research", 
-      completed: hasAnyData(4, ['weatherDataSummary', 'corelogicDataSummary']) 
+      completed: hasRequiredData(4, ['weatherDataSummary', 'corelogicHailSummary', 'corelogicWindSummary']) 
     },
     { 
       name: "Discussion & Analysis", 
-      completed: hasRequiredData(5, ['discussionAndAnalysis']) 
+      completed: hasRequiredData(5, ['siteDiscussionAnalysis', 'weatherDiscussionAnalysis', 'weatherImpactAnalysis']) 
     },
   ];
 
@@ -255,7 +259,7 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Provide clear, concise conclusions based on your investigation and analysis. Include:
+                      placeholder="Provide clear, concise conclusions based on your investigation and analysis. You can use bullet points - they will be converted to professional paragraphs when generating the Google Doc (if AI enhancement is enabled):
 
 • Summary of key findings
 • Final determination regarding cause of damage
@@ -311,6 +315,28 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
               <p className="text-sm text-slate-600">
                 Generate a Google Doc version of your report for easy sharing and printing.
               </p>
+              
+              {/* AI Enhancement Option */}
+              <div className="flex items-center space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <Checkbox
+                  id="ai-enhance"
+                  checked={aiEnhanceText}
+                  onCheckedChange={(checked) => setAiEnhanceText(checked === true)}
+                />
+                <div className="flex-1">
+                  <label
+                    htmlFor="ai-enhance"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center"
+                  >
+                    <Wand2 className="h-4 w-4 mr-2 text-blue-600" />
+                    AI-enhance bullet points into professional paragraphs
+                  </label>
+                  <p className="text-xs text-slate-600 mt-1 ml-6">
+                    Convert bullet points in long-form fields to polished, professional paragraphs using AI
+                  </p>
+                </div>
+              </div>
+              
               <Button
                 type="button"
                 onClick={handleGenerateDoc}

@@ -7,6 +7,7 @@
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
+    "start:local": "NODE_ENV=production tsx server/index.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push"
   },
@@ -49,6 +50,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.5.0",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
@@ -61,6 +63,7 @@
     "memorystore": "^1.6.7",
     "mongoose": "^8.15.2",
     "next-themes": "^0.4.6",
+    "openai": "^5.5.0",
     "openid-client": "^6.5.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

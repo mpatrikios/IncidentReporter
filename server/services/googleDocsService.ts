@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { storage } from '../storage';
+import { aiTextService } from './aiTextService';
 import fs from 'fs';
 import path from 'path';
 
@@ -64,7 +65,7 @@ class GoogleDocsService {
     return { auth, docs, drive };
   }
 
-  public async generateFromTemplate(userId: string, reportData: ReportData, reportTitle: string): Promise<string | null> {
+  public async generateFromTemplate(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false): Promise<string | null> {
     // Read template ID from config
     const templateConfigPath = path.join(process.cwd(), 'server/config/template.json');
     
@@ -79,18 +80,26 @@ class GoogleDocsService {
       throw new Error('Template ID not configured. Please set templateId in server/config/template.json');
     }
 
-    return this.fillTemplate(userId, templateId, reportData, reportTitle);
+    return this.fillTemplate(userId, templateId, reportData, reportTitle, aiEnhanceText);
   }
 
-  private async fillTemplate(userId: string, templateId: string, reportData: ReportData, reportTitle: string): Promise<string | null> {
+  private async fillTemplate(userId: string, templateId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false): Promise<string | null> {
     const userAuth = await this.createUserAuth(userId);
     if (!userAuth) {
       throw new Error('Failed to create user authentication');
     }
 
-    const { docs, drive } = userAuth;
+    const { auth, docs, drive } = userAuth;
 
     try {
+      // Debug: Log the user info and template ID
+      console.log('DEBUG: Attempting to copy template:', templateId);
+      console.log('DEBUG: User ID:', userId);
+      
+      // Try to get user info first
+      const userInfo = await auth.getTokenInfo(auth.credentials.access_token);
+      console.log('DEBUG: Authenticated user email:', userInfo.email);
+      
       // Copy the template to create a new document in user's Drive
       const copyResponse = await drive.files.copy({
         fileId: templateId,
@@ -107,7 +116,7 @@ class GoogleDocsService {
       }
 
       // Prepare replacement requests for template placeholders
-      const replacements = this.prepareReplacements(reportData);
+      const replacements = await this.prepareReplacements(reportData, aiEnhanceText);
       
       // Create batch update requests to replace placeholders
       const requests = replacements.map(replacement => ({
@@ -139,8 +148,36 @@ class GoogleDocsService {
     }
   }
 
-  private prepareReplacements(reportData: ReportData): Array<{placeholder: string, value: string}> {
+  private async prepareReplacements(reportData: ReportData, aiEnhanceText: boolean = false): Promise<Array<{placeholder: string, value: string}>> {
     const replacements = [];
+
+    // Helper function to process text and generate paragraphs from bullet points if needed
+    const processText = async (text: string | undefined, fieldType: string): Promise<string> => {
+      if (!text || text.trim().length === 0) {
+        return '';
+      }
+
+      // Check if text contains bullet points (starts with •, -, *, or numbers)
+      const bulletPointPattern = /^[\s]*[•\-\*]|\d+\./gm;
+      const hasBulletPoints = bulletPointPattern.test(text);
+
+      if (hasBulletPoints && aiEnhanceText && aiTextService.isConfigured()) {
+        try {
+          console.log(`Generating paragraph for ${fieldType} from bullet points`);
+          const generatedText = await aiTextService.generateParagraph({
+            bulletPoints: text,
+            fieldType,
+            context: 'Civil engineering property inspection report'
+          });
+          return generatedText;
+        } catch (error) {
+          console.warn(`Failed to generate paragraph for ${fieldType}, using original text:`, error);
+          return text;
+        }
+      }
+
+      return text;
+    };
 
     // Project Information replacements
     if (reportData.projectInformation) {
@@ -165,22 +202,22 @@ class GoogleDocsService {
     if (reportData.assignmentScope) {
       const as = reportData.assignmentScope;
       replacements.push(
-        { placeholder: '{{interviewees_names}}', value: as.intervieweesNames || '' },
-        { placeholder: '{{provided_documents_titles}}', value: as.providedDocumentsTitles || '' }
+        { placeholder: '{{interviewees_names}}', value: await processText(as.intervieweesNames, 'intervieweesNames') },
+        { placeholder: '{{provided_documents_titles}}', value: await processText(as.providedDocumentsTitles, 'providedDocumentsTitles') }
       );
     }
 
     // Building & Site Observations replacements
-    if (reportData.buildingAndSite) {
-      const bs = reportData.buildingAndSite;
+    if (reportData.buildingObservations) {
+      const bs = reportData.buildingObservations;
       replacements.push(
         { placeholder: '{{structure_built_date}}', value: bs.structureBuiltDate || '' },
         { placeholder: '{{structure_age}}', value: bs.structureAge || '' },
-        { placeholder: '{{building_system_description}}', value: bs.buildingSystemDescription || '' },
+        { placeholder: '{{building_system_description}}', value: await processText(bs.buildingSystemDescription, 'buildingSystemDescription') },
         { placeholder: '{{front_facing_direction}}', value: bs.frontFacingDirection || '' },
-        { placeholder: '{{exterior_observations}}', value: bs.exteriorObservations || '' },
-        { placeholder: '{{interior_observations}}', value: bs.interiorObservations || '' },
-        { placeholder: '{{other_site_observations}}', value: bs.otherSiteObservations || '' }
+        { placeholder: '{{exterior_observations}}', value: await processText(bs.exteriorObservations, 'exteriorObservations') },
+        { placeholder: '{{interior_observations}}', value: await processText(bs.interiorObservations, 'interiorObservations') },
+        { placeholder: '{{other_site_observations}}', value: await processText(bs.otherSiteObservations, 'otherSiteObservations') }
       );
     }
 
@@ -188,27 +225,27 @@ class GoogleDocsService {
     if (reportData.research) {
       const r = reportData.research;
       replacements.push(
-        { placeholder: '{{weather_data_summary}}', value: r.weatherDataSummary || '' },
-        { placeholder: '{{corelogic_hail_summary}}', value: r.corelogicHailSummary || '' },
-        { placeholder: '{{corelogic_wind_summary}}', value: r.corelogicWindSummary || '' }
+        { placeholder: '{{weather_data_summary}}', value: await processText(r.weatherDataSummary, 'weatherDataSummary') },
+        { placeholder: '{{corelogic_hail_summary}}', value: await processText(r.corelogicHailSummary, 'corelogicHailSummary') },
+        { placeholder: '{{corelogic_wind_summary}}', value: await processText(r.corelogicWindSummary, 'corelogicWindSummary') }
       );
     }
 
     // Discussion & Analysis replacements
-    if (reportData.discussionAndAnalysis) {
-      const da = reportData.discussionAndAnalysis;
+    if (reportData.discussionAnalysis) {
+      const da = reportData.discussionAnalysis;
       replacements.push(
-        { placeholder: '{{site_discussion_analysis}}', value: da.siteDiscussionAnalysis || '' },
-        { placeholder: '{{weather_discussion_analysis}}', value: da.weatherDiscussionAnalysis || '' },
-        { placeholder: '{{weather_impact_analysis}}', value: da.weatherImpactAnalysis || '' },
-        { placeholder: '{{recommendations_and_discussion}}', value: da.recommendationsAndDiscussion || '' }
+        { placeholder: '{{site_discussion_analysis}}', value: await processText(da.siteDiscussionAnalysis, 'siteDiscussionAnalysis') },
+        { placeholder: '{{weather_discussion_analysis}}', value: await processText(da.weatherDiscussionAnalysis, 'weatherDiscussionAnalysis') },
+        { placeholder: '{{weather_impact_analysis}}', value: await processText(da.weatherImpactAnalysis, 'weatherImpactAnalysis') },
+        { placeholder: '{{recommendations_and_discussion}}', value: await processText(da.recommendationsAndDiscussion, 'recommendationsAndDiscussion') }
       );
     }
 
     // Conclusions replacements
     if (reportData.conclusions) {
       replacements.push(
-        { placeholder: '{{conclusions}}', value: reportData.conclusions.conclusions || '' }
+        { placeholder: '{{conclusions}}', value: await processText(reportData.conclusions.conclusions, 'conclusions') }
       );
     }
 
