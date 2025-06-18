@@ -12,14 +12,14 @@ import type { StepRef } from "@/lib/types";
 
 interface BuildingAndSiteProps {
   initialData?: Partial<BuildingAndSite>;
-  onSubmit: (data: BuildingAndSite) => void;
+  onSubmit?: (data: BuildingAndSite) => void;
   onPrevious?: () => void;
   reportId?: string | null;
 }
 
 export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, BuildingAndSiteProps>(({ 
   initialData, 
-  onSubmit, 
+  onSubmit = () => {}, 
   onPrevious,
   reportId 
 }, ref) => {

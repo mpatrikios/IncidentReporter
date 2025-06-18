@@ -10,14 +10,14 @@ import type { StepRef } from "@/lib/types";
 
 interface DiscussionAndAnalysisProps {
   initialData?: Partial<DiscussionAndAnalysis>;
-  onSubmit: (data: DiscussionAndAnalysis) => void;
+  onSubmit?: (data: DiscussionAndAnalysis) => void;
   onPrevious?: () => void;
   reportId?: string | null;
 }
 
 export const DiscussionAndAnalysisStep = forwardRef<StepRef<DiscussionAndAnalysis>, DiscussionAndAnalysisProps>(({ 
   initialData, 
-  onSubmit, 
+  onSubmit = () => {}, 
   onPrevious,
   reportId 
 }, ref) => {

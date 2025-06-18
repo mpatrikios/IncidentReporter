@@ -37,14 +37,22 @@ class GoogleDocsService {
   }
 
   private async createUserAuth(userId: string): Promise<{ auth: OAuth2Client; docs: any; drive: any } | null> {
+    console.log('DEBUG: Creating user auth for user ID:', userId);
+    
     if (!this.credentials) {
+      console.error('DEBUG: Google credentials not loaded');
       throw new Error('Google credentials not loaded');
     }
 
     // Get user with tokens
+    console.log('DEBUG: Fetching user tokens from database...');
     const user = await storage.getUserWithTokens(userId);
+    console.log('DEBUG: User found:', !!user);
+    console.log('DEBUG: Has access token:', !!user?.googleAccessToken);
+    console.log('DEBUG: Has refresh token:', !!user?.googleRefreshToken);
+    
     if (!user || !user.googleAccessToken) {
-      throw new Error('User not found or missing Google access token');
+      throw new Error('User not found or missing Google access token. Please re-authenticate with Google.');
     }
 
     const auth = new google.auth.OAuth2(
@@ -59,13 +67,15 @@ class GoogleDocsService {
       refresh_token: user.googleRefreshToken,
     });
 
+    console.log('DEBUG: OAuth2 client configured successfully');
+
     const docs = google.docs({ version: 'v1', auth });
     const drive = google.drive({ version: 'v3', auth });
 
     return { auth, docs, drive };
   }
 
-  public async generateFromTemplate(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false): Promise<string | null> {
+  public async generateFromTemplate(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false, includePhotosInline: boolean = false): Promise<string | null> {
     // Read template ID from config
     const templateConfigPath = path.join(process.cwd(), 'server/config/template.json');
     
@@ -80,10 +90,14 @@ class GoogleDocsService {
       throw new Error('Template ID not configured. Please set templateId in server/config/template.json');
     }
 
-    return this.fillTemplate(userId, templateId, reportData, reportTitle, aiEnhanceText);
+    return this.fillTemplate(userId, templateId, reportData, reportTitle, aiEnhanceText, includePhotosInline);
   }
 
-  private async fillTemplate(userId: string, templateId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false): Promise<string | null> {
+  private async fillTemplate(userId: string, templateId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false, includePhotosInline: boolean = false): Promise<string | null> {
+    console.log('DEBUG: Starting fillTemplate for user:', userId);
+    console.log('DEBUG: Template ID:', templateId);
+    console.log('DEBUG: Report title:', reportTitle);
+
     const userAuth = await this.createUserAuth(userId);
     if (!userAuth) {
       throw new Error('Failed to create user authentication');
@@ -93,14 +107,32 @@ class GoogleDocsService {
 
     try {
       // Debug: Log the user info and template ID
-      console.log('DEBUG: Attempting to copy template:', templateId);
-      console.log('DEBUG: User ID:', userId);
+      console.log('DEBUG: User authentication successful');
       
       // Try to get user info first
       const userInfo = await auth.getTokenInfo(auth.credentials.access_token);
       console.log('DEBUG: Authenticated user email:', userInfo.email);
       
+      // First, check if we can access the template
+      console.log('DEBUG: Checking template access...');
+      try {
+        const templateInfo = await drive.files.get({
+          fileId: templateId,
+          fields: 'id,name,permissions,owners'
+        });
+        console.log('DEBUG: Template info:', templateInfo.data);
+      } catch (templateError: any) {
+        console.error('DEBUG: Error accessing template:', templateError);
+        if (templateError.code === 403) {
+          throw new Error('Template access denied. The template document may not be shared with the application or user.');
+        } else if (templateError.code === 404) {
+          throw new Error('Template document not found. Please check the template ID in server/config/template.json');
+        }
+        throw new Error(`Template access error: ${templateError.message}`);
+      }
+      
       // Copy the template to create a new document in user's Drive
+      console.log('DEBUG: Copying template...');
       const copyResponse = await drive.files.copy({
         fileId: templateId,
         requestBody: {
@@ -110,13 +142,14 @@ class GoogleDocsService {
       });
 
       const newDocumentId = copyResponse.data.id;
+      console.log('DEBUG: Template copied successfully, new document ID:', newDocumentId);
       
       if (!newDocumentId) {
-        throw new Error('Failed to copy template');
+        throw new Error('Failed to copy template - no document ID returned');
       }
 
       // Prepare replacement requests for template placeholders
-      const replacements = await this.prepareReplacements(reportData, aiEnhanceText);
+      const replacements = await this.prepareReplacements(reportData, aiEnhanceText, includePhotosInline);
       
       // Create batch update requests to replace placeholders
       const requests = replacements.map(replacement => ({
@@ -148,8 +181,30 @@ class GoogleDocsService {
     }
   }
 
-  private async prepareReplacements(reportData: ReportData, aiEnhanceText: boolean = false): Promise<Array<{placeholder: string, value: string}>> {
+  private async prepareReplacements(reportData: ReportData, aiEnhanceText: boolean = false, includePhotosInline: boolean = false): Promise<Array<{placeholder: string, value: string}>> {
     const replacements = [];
+
+    // Helper function to format photo references
+    const formatPhotoReferences = (files: any[], sectionTitle: string): string => {
+      if (!files || files.length === 0) {
+        return '';
+      }
+
+      if (includePhotosInline) {
+        // For inline photos, we'll add placeholder text that indicates where photos should be inserted
+        // Note: Actual photo insertion would require Google Docs API image insertion capabilities
+        return files.map((file, index) => 
+          `[Photo ${index + 1}: ${file.name || `${sectionTitle}_${index + 1}`}] - Photo will be inserted here`
+        ).join('\n\n');
+      } else {
+        // For referenced photos, just list the filenames
+        const photoList = files.map((file, index) => 
+          `• Photo ${index + 1}: ${file.name || `${sectionTitle}_${index + 1}`}`
+        ).join('\n');
+        
+        return photoList ? `\n\nPhotographs Referenced:\n${photoList}` : '';
+      }
+    };
 
     // Helper function to process text and generate paragraphs from bullet points if needed
     const processText = async (text: string | undefined, fieldType: string): Promise<string> => {
@@ -205,6 +260,11 @@ class GoogleDocsService {
         { placeholder: '{{interviewees_names}}', value: await processText(as.intervieweesNames, 'intervieweesNames') },
         { placeholder: '{{provided_documents_titles}}', value: await processText(as.providedDocumentsTitles, 'providedDocumentsTitles') }
       );
+
+      // Add photo placeholders for Assignment Scope section
+      replacements.push(
+        { placeholder: '{{document_files}}', value: formatPhotoReferences(as.documentFiles || [], 'Document Review Files') }
+      );
     }
 
     // Building & Site Observations replacements
@@ -218,6 +278,14 @@ class GoogleDocsService {
         { placeholder: '{{exterior_observations}}', value: await processText(bs.exteriorObservations, 'exteriorObservations') },
         { placeholder: '{{interior_observations}}', value: await processText(bs.interiorObservations, 'interiorObservations') },
         { placeholder: '{{other_site_observations}}', value: await processText(bs.otherSiteObservations, 'otherSiteObservations') }
+      );
+
+      // Add photo placeholders for Building & Site section
+      replacements.push(
+        { placeholder: '{{building_photos}}', value: formatPhotoReferences(bs.buildingPhotos || [], 'Building Documentation') },
+        { placeholder: '{{exterior_photos}}', value: formatPhotoReferences(bs.exteriorPhotos || [], 'Exterior Photos') },
+        { placeholder: '{{interior_photos}}', value: formatPhotoReferences(bs.interiorPhotos || [], 'Interior Photos') },
+        { placeholder: '{{site_documents}}', value: formatPhotoReferences(bs.siteDocuments || [], 'Site Documents') }
       );
     }
 

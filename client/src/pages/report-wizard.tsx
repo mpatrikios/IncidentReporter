@@ -111,26 +111,89 @@ export default function ReportWizard() {
     return steps.find(step => step.stepNumber === currentStep)?.data || {};
   };
 
+  const handleNext = () => {
+    if (currentStep < FORM_STEPS.length) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
   const renderCurrentStep = () => {
     const stepData = getCurrentStepData();
     
     switch (currentStep) {
       case 1:
-        return <ProjectInformationStep ref={stepRef} reportId={reportId} initialData={stepData} />;
+        return <ProjectInformationStep 
+          ref={stepRef} 
+          reportId={reportId} 
+          initialData={stepData} 
+          onSubmit={handleNext}
+          isFirstStep={true}
+        />;
       case 2:
-        return <AssignmentScopeStep ref={stepRef} reportId={reportId} initialData={stepData} />;
+        return <AssignmentScopeStep 
+          ref={stepRef} 
+          reportId={reportId} 
+          initialData={stepData} 
+          onSubmit={handleNext}
+          onPrevious={handlePrevious}
+        />;
       case 3:
-        return <BuildingAndSiteStep ref={stepRef} reportId={reportId} initialData={stepData} />;
+        return <BuildingAndSiteStep 
+          ref={stepRef} 
+          reportId={reportId} 
+          initialData={stepData} 
+          onSubmit={handleNext}
+          onPrevious={handlePrevious}
+        />;
       case 4:
-        return <ResearchStep ref={stepRef} reportId={reportId} initialData={stepData} />;
+        return <ResearchStep 
+          ref={stepRef} 
+          reportId={reportId} 
+          initialData={stepData} 
+          onSubmit={handleNext}
+          onPrevious={handlePrevious}
+          formData={stepData}
+          steps={steps}
+        />;
       case 5:
-        return <DiscussionAndAnalysisStep ref={stepRef} reportId={reportId} initialData={stepData} />;
+        return <DiscussionAndAnalysisStep 
+          ref={stepRef} 
+          reportId={reportId} 
+          initialData={stepData} 
+          onSubmit={handleNext}
+          onPrevious={handlePrevious}
+        />;
       case 6:
-        return <ConclusionsStep ref={stepRef} reportId={reportId} initialData={stepData} />;
+        return <ConclusionsStep 
+          ref={stepRef} 
+          reportId={reportId} 
+          initialData={stepData} 
+          onSubmit={handleNext}
+          onPrevious={handlePrevious}
+          initialTitle={report?.title}
+          steps={steps}
+        />;
       case 7:
-        return <SubmitReportStep ref={stepRef} reportId={reportId} initialData={stepData} />;
+        return <SubmitReportStep 
+          reportId={reportId} 
+          onPrevious={handlePrevious}
+          formData={stepData}
+          initialTitle={report?.title}
+        />;
       default:
-        return <ProjectInformationStep ref={stepRef} reportId={reportId} initialData={stepData} />;
+        return <ProjectInformationStep 
+          ref={stepRef} 
+          reportId={reportId} 
+          initialData={stepData} 
+          onSubmit={handleNext}
+          isFirstStep={true}
+        />;
     }
   };
 

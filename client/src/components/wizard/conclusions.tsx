@@ -18,7 +18,7 @@ import { useLocation } from "wouter";
 
 interface ConclusionsProps {
   initialData?: Partial<Conclusions>;
-  onSubmit: (data: Conclusions) => void;
+  onSubmit?: (data: Conclusions) => void;
   onPrevious?: () => void;
   reportId?: string | null;
   formData?: any;
@@ -28,7 +28,7 @@ interface ConclusionsProps {
 
 export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps>(({ 
   initialData, 
-  onSubmit, 
+  onSubmit = () => {}, 
   onPrevious,
   reportId,
   formData: _formData,
@@ -39,8 +39,26 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const [aiEnhanceText, setAiEnhanceText] = useState(false);
+  const [includePhotosInline, setIncludePhotosInline] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Check for auto-generate parameter (when returning from Google auth)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoGenerate = urlParams.get('autoGenerate');
+    
+    if (autoGenerate === 'true') {
+      // Remove the parameter from URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      
+      // Auto-trigger document generation after a short delay
+      setTimeout(() => {
+        handleGenerateDoc();
+      }, 1000);
+    }
+  }, []);
 
   // Auto-save the title directly to the report record
   useEffect(() => {
@@ -100,42 +118,101 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
     console.log('DEBUG: Starting Google Doc generation for report ID:', reportId);
     setIsGeneratingDoc(true);
     try {
+      // First check Google authentication status
+      console.log('DEBUG: Checking Google authentication status...');
+      const authStatusResponse = await apiRequest("GET", "/api/auth/google-status");
+      const authStatus = await authStatusResponse.json();
+      console.log('DEBUG: Google auth status:', authStatus);
+      
+      if (authStatus.needsReauth) {
+        toast({
+          title: "Additional Google Permissions Required",
+          description: "We need permission to create Google Docs in your account. Redirecting to Google in 2 seconds...",
+          variant: "destructive",
+        });
+        
+        // Set generating state to show loading
+        setIsGeneratingDoc(true);
+        
+        // Add a small delay so user can read the message
+        setTimeout(() => {
+          // Redirect to Google OAuth with return URL - user will come back to this report page and auto-generate doc
+          const currentUrl = `${window.location.pathname}?autoGenerate=true`;
+          window.location.href = `/auth/google?returnTo=${encodeURIComponent(currentUrl)}`;
+        }, 2000);
+        return;
+      }
+
       console.log('DEBUG: Making API request to generate doc...');
       const response = await apiRequest("POST", `/api/reports/${reportId}/generate-doc`, {
-        aiEnhanceText
+        aiEnhanceText,
+        includePhotosInline
       });
       console.log('DEBUG: Raw API response:', response);
+      console.log('DEBUG: Response status:', response.status);
+      console.log('DEBUG: Response headers:', response.headers);
       
-      const data = await response.json();
-      console.log('DEBUG: Parsed response data:', data);
+      // Check content type before parsing
+      const contentType = response.headers.get("content-type");
+      console.log('DEBUG: Content-Type:', contentType);
+      
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+        console.log('DEBUG: Parsed response data:', data);
+      } else {
+        // Response is not JSON, likely HTML error page
+        const textResponse = await response.text();
+        console.log('DEBUG: Non-JSON response:', textResponse.substring(0, 500));
+        
+        if (textResponse.includes('<!DOCTYPE') || textResponse.includes('<html')) {
+          throw new Error('Server returned HTML instead of JSON. This usually indicates an authentication or server error.');
+        } else {
+          throw new Error(`Unexpected response format: ${textResponse.substring(0, 200)}`);
+        }
+      }
       
       if (data.documentUrl) {
         console.log('DEBUG: Opening document URL:', data.documentUrl);
         window.open(data.documentUrl, '_blank');
+        
+        toast({
+          title: "Document Generated",
+          description: "Google Doc has been generated successfully.",
+        });
       } else {
         console.log('DEBUG: No documentUrl in response');
+        throw new Error('No document URL returned from server');
       }
       
-      toast({
-        title: "Document Generated",
-        description: "Google Doc has been generated successfully.",
-      });
     } catch (error: any) {
       console.error('DEBUG: Error during doc generation:', error);
-      if (error.message?.includes('not authenticated')) {
+      
+      // Parse error message from response
+      let errorMessage = "Failed to generate Google Doc. Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response) {
+        try {
+          const errorData = await error.response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+      }
+      
+      if (errorMessage.includes('not authenticated') || errorMessage.includes('access token')) {
         toast({
           title: "Authentication Required",
-          description: "Please authenticate with Google first.",
+          description: "Please re-authenticate with Google and try again.",
           variant: "destructive",
         });
-        // Optionally redirect to auth  
-        if (error.authUrl) {
-          window.open(error.authUrl, '_blank');
-        }
+        // Open Google OAuth in new window
+        window.open('/auth/google', '_blank');
       } else {
         toast({
           title: "Generation Failed",
-          description: error.message || "Failed to generate Google Doc. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -333,6 +410,27 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
                   </label>
                   <p className="text-xs text-slate-600 mt-1 ml-6">
                     Convert bullet points in long-form fields to polished, professional paragraphs using AI
+                  </p>
+                </div>
+              </div>
+              
+              {/* Photo Handling Option */}
+              <div className="flex items-center space-x-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <Checkbox
+                  id="photos-inline"
+                  checked={includePhotosInline}
+                  onCheckedChange={(checked) => setIncludePhotosInline(checked === true)}
+                />
+                <div className="flex-1">
+                  <label
+                    htmlFor="photos-inline"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center"
+                  >
+                    <FileText className="h-4 w-4 mr-2 text-green-600" />
+                    Include photos inline in document
+                  </label>
+                  <p className="text-xs text-slate-600 mt-1 ml-6">
+                    If checked: Photos will be embedded directly in the document. If unchecked: Photos will be referenced by filename only.
                   </p>
                 </div>
               </div>

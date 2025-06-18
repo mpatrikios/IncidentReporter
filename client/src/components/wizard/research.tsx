@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ResearchProps {
   initialData?: Partial<Research>;
-  onSubmit: (data: Research) => void;
+  onSubmit?: (data: Research) => void;
   onPrevious?: () => void;
   reportId?: string | null;
   formData?: any; // To access project information for location and date
@@ -21,7 +21,7 @@ interface ResearchProps {
 
 export const ResearchStep = forwardRef<StepRef<Research>, ResearchProps>(({ 
   initialData, 
-  onSubmit, 
+  onSubmit = () => {}, 
   onPrevious,
   reportId,
   formData,

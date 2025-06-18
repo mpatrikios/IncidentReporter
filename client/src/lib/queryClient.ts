@@ -2,8 +2,27 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const contentType = res.headers.get("content-type");
+    let errorMessage = res.statusText;
+    
+    try {
+      if (contentType && contentType.includes("application/json")) {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } else {
+        const text = await res.text();
+        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+          errorMessage = 'Server returned HTML error page. This usually indicates an authentication issue.';
+        } else {
+          errorMessage = text || errorMessage;
+        }
+      }
+    } catch (parseError) {
+      console.error('Error parsing response:', parseError);
+      errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+    }
+    
+    throw new Error(`${res.status}: ${errorMessage}`);
   }
 }
 
