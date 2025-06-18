@@ -101,213 +101,71 @@ export default function ReportWizard() {
       <div className="loading-screen-container">
         <div className="loading-content-center">
           <div className="loading-spinner"></div>
-          <p className="loading-message">Loading report...</p>
+          <p className="loading-message">Loading report wizard...</p>
         </div>
       </div>
     );
   }
 
-  const completedSteps = steps.filter(step => step.isCompleted).map(step => step.stepNumber);
-  const progress = Math.min((completedSteps.length / FORM_STEPS.length) * 100, 85);
-
-  const getStepData = (stepNumber: number) => {
-    const step = steps.find(s => s.stepNumber === stepNumber);
-    
-    // If step data is null but we have a saved report, try to get data from report.formData
-    let data = step?.data || {};
-    
-    if ((!data || Object.keys(data).length === 0 || data === null) && report?.formData) {
-      const formData = report.formData as any;
-      switch (stepNumber) {
-        case 1:
-          data = formData.projectInformation || {};
-          break;
-        case 2:
-          data = formData.assignmentScope || {};
-          break;
-        case 3:
-          data = formData.buildingAndSite || {};
-          break;
-        case 4:
-          data = formData.research || {};
-          break;
-        case 5:
-          data = formData.discussionAndAnalysis || {};
-          break;
-        case 6:
-          data = formData.conclusions || {};
-          break;
-      }
-    }
-    
-    return data;
+  const getCurrentStepData = () => {
+    return steps.find(step => step.stepNumber === currentStep)?.data || {};
   };
-
-  const handleStepSubmit = async (stepNumber: number, data: any, goToNext: boolean = true) => {
-    try {
-      console.log(`Submitting step ${stepNumber} with data:`, data);
-      // Save as partial data when navigating between steps, full validation only on final submit
-      await saveFormData(stepNumber, data, false);
-      
-      // Wait for the save to complete before switching steps
-      if (goToNext && stepNumber < FORM_STEPS.length) {
-        console.log(`Moving to step ${stepNumber + 1}`);
-        // Wait for save and force refetch fresh data
-        await new Promise(resolve => setTimeout(resolve, 500));
-        console.log("Refetching steps data...");
-        const result = await refetchSteps();
-        console.log("Refetch result:", result);
-        setCurrentStep(stepNumber + 1);
-      }
-    } catch (error) {
-      console.error("Failed to save step:", error);
-      toast({
-        title: "Save Failed",
-        description: "Failed to save your progress. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const goToStep = async (step: number) => {
-    try {
-      console.log(`Going from step ${currentStep} to step ${step}`);
-      // Save current step data before switching
-      if (stepRef.current?.getValues) {
-        const currentData = stepRef.current.getValues();
-        console.log(`Current step ${currentStep} data:`, currentData);
-        // Only save if there's meaningful data
-        const hasContent = Object.values(currentData).some(value => 
-          value !== "" && value !== null && value !== undefined && 
-          (Array.isArray(value) ? value.length > 0 : true)
-        );
-        
-        console.log(`Has content: ${hasContent}`);
-        if (hasContent) {
-          console.log(`Saving current step ${currentStep} data before switching`);
-          await saveFormData(currentStep, currentData, false);
-          // Wait longer to ensure save completes
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-      
-      // Force refetch of steps data
-      console.log("Refetching steps data in goToStep...");
-      const result = await refetchSteps();
-      console.log("GoToStep refetch result:", result);
-      
-      setCurrentStep(step);
-    } catch (error) {
-      console.error("Failed to save step before switching:", error);
-      toast({
-        title: "Save Failed",
-        description: "Failed to save your progress. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
 
   const renderCurrentStep = () => {
-    const stepData = getStepData(currentStep);
+    const stepData = getCurrentStepData();
     
     switch (currentStep) {
       case 1:
-        return (
-          <ProjectInformationStep
-            ref={stepRef as React.RefObject<StepRef<ProjectInformation>>}
-            initialData={stepData}
-            onSubmit={(data) => handleStepSubmit(1, data)}
-            isFirstStep={true}
-            reportId={reportId}
-          />
-        );
+        return <ProjectInformationStep ref={stepRef} reportId={reportId} initialData={stepData} />;
       case 2:
-        return (
-          <AssignmentScopeStep
-            ref={stepRef as React.RefObject<StepRef<AssignmentScope>>}
-            initialData={stepData}
-            onSubmit={(data) => handleStepSubmit(2, data)}
-            onPrevious={() => goToStep(1)}
-            reportId={reportId}
-          />
-        );
+        return <AssignmentScopeStep ref={stepRef} reportId={reportId} initialData={stepData} />;
       case 3:
-        return (
-          <BuildingAndSiteStep
-            ref={stepRef as React.RefObject<StepRef<BuildingAndSite>>}
-            initialData={stepData}
-            onSubmit={(data) => handleStepSubmit(3, data)}
-            onPrevious={() => goToStep(2)}
-            reportId={reportId}
-          />
-        );
+        return <BuildingAndSiteStep ref={stepRef} reportId={reportId} initialData={stepData} />;
       case 4:
-        return (
-          <ResearchStep
-            ref={stepRef as React.RefObject<StepRef<Research>>}
-            initialData={stepData}
-            onSubmit={(data) => handleStepSubmit(4, data)}
-            onPrevious={() => goToStep(3)}
-            reportId={reportId}
-            formData={report?.formData || {} as Record<string, any>}
-            steps={steps}
-          />
-        );
+        return <ResearchStep ref={stepRef} reportId={reportId} initialData={stepData} />;
       case 5:
-        return (
-          <DiscussionAndAnalysisStep
-            ref={stepRef as React.RefObject<StepRef<DiscussionAndAnalysis>>}
-            initialData={stepData}
-            onSubmit={(data) => handleStepSubmit(5, data)}
-            onPrevious={() => goToStep(4)}
-            reportId={reportId}
-          />
-        );
+        return <DiscussionAndAnalysisStep ref={stepRef} reportId={reportId} initialData={stepData} />;
       case 6:
-        return (
-          <ConclusionsStep
-            ref={stepRef as React.RefObject<StepRef<Conclusions>>}
-            initialData={stepData}
-            onSubmit={(data) => handleStepSubmit(6, data)}
-            onPrevious={() => goToStep(5)}
-            reportId={reportId}
-            formData={report?.formData || {} as Record<string, any>}
-            initialTitle={report?.title || ""}
-            steps={steps}
-          />
-        );
+        return <ConclusionsStep ref={stepRef} reportId={reportId} initialData={stepData} />;
+      case 7:
+        return <SubmitReportStep ref={stepRef} reportId={reportId} initialData={stepData} />;
       default:
-        return null;
+        return <ProjectInformationStep ref={stepRef} reportId={reportId} initialData={stepData} />;
     }
   };
 
+  const handleLogout = () => {
+    logout.mutate();
+  };
+
   return (
-    <div className="min-h-screen">
-      {/* Consistent Header from Home Page */}
-      <div className="bg-white border-b-2 border-grey-200 shadow-md sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-xl border-2 border-blue-200">
-                <Zap className="h-7 w-7 text-blue-700" />
+    <div className="report-wizard-container">
+      {/* Header */}
+      <div className="wizard-header-sticky">
+        <div className="header-content-wrapper">
+          <div className="header-nav-bar">
+            
+            {/* Brand Section */}
+            <button 
+              onClick={() => setLocation("/")}
+              className="brand-section hover:opacity-75 transition-opacity"
+            >
+              <div className="brand-icon-container">
+                <Zap className="brand-icon" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-blue-700">
-                  Engineering Suite
-                </h1>
-                <div className="text-xs text-grey-600 font-medium">
-                  Civil Engineering Documentation Platform
-                </div>
+              <div className="brand-text-container">
+                <h1 className="brand-title">Engineering Suite</h1>
+                <div className="brand-subtitle">Civil Engineering Documentation Platform</div>
               </div>
-            </div>
+            </button>
             
             <div className="flex items-center gap-4">
+              
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setLocation("/")}
-                className="flex items-center gap-2 border-2 border-grey-300 text-grey-700 hover:bg-grey-100"
+                className="flex items-center gap-2 border-border/50 hover:bg-primary/10 hover:border-primary/50 rounded-xl transition-all duration-300"
               >
                 <Home className="h-4 w-4" />
                 Dashboard
@@ -315,35 +173,35 @@ export default function ReportWizard() {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200 hover:bg-grey-100 hover:border-grey-300">
-                    <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-200">
-                      <User className="h-4 w-4 text-blue-600" />
+                  <Button variant="ghost" className="user-profile-trigger">
+                    <div className="profile-avatar-container">
+                      <User className="profile-avatar-icon" />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold text-grey-900">
+                      <span className="profile-display-name">
                         {user?.fullName || user?.username}
                       </span>
                       {user?.isEngineer && (
-                        <span className="bg-blue-100 text-blue-700 border border-blue-200 text-xs px-2 py-0.5 rounded">
+                        <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs px-2 py-0.5 w-fit">
                           Licensed Engineer
-                        </span>
+                        </Badge>
                       )}
                     </div>
-                    <ChevronDown className="h-4 w-4 text-grey-600" />
+                    <ChevronDown className="profile-dropdown-icon" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 bg-white border-2 border-grey-200 shadow-lg">
-                  <div className="px-4 py-4">
-                    <p className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}</p>
-                    <p className="text-xs text-grey-600">{user?.email}</p>
+                <DropdownMenuContent align="end" className="profile-dropdown-menu">
+                  <div className="profile-info-section">
+                    <p className="profile-name">{user?.fullName || user?.username}</p>
+                    <p className="profile-email">{user?.email}</p>
                   </div>
-                  <DropdownMenuSeparator className="bg-grey-200" />
+                  <DropdownMenuSeparator className="profile-menu-separator" />
                   <DropdownMenuItem 
-                    onClick={() => logout.mutate()}
+                    onClick={handleLogout}
                     disabled={logout.isPending}
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer px-4 py-3"
+                    className="logout-menu-item"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
+                    <LogOut className="logout-icon" />
                     {logout.isPending ? "Logging out..." : "Logout"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -353,22 +211,23 @@ export default function ReportWizard() {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Step Navigation */}
-          <div className="lg:col-span-1">
-            <StepNavigation
-              currentStep={currentStep}
-              completedSteps={completedSteps}
-              onStepClick={goToStep}
-              progress={progress}
-              lastSaved={formatLastSaved()}
+      {/* Main Content */}
+      <div className="wizard-main-content">
+        <div className="wizard-layout-grid">
+          {/* Sidebar */}
+          <div className="wizard-sidebar-column">
+            <StepNavigation 
+              currentStep={currentStep} 
+              completedSteps={[]}
+              onStepClick={setCurrentStep}
+              progress={(currentStep / FORM_STEPS.length) * 100}
+              lastSaved={formatLastSaved() || ""}
             />
           </div>
 
-          {/* Step Content */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-lg p-8">
+          {/* Form Content */}
+          <div className="wizard-content-column">
+            <div className="wizard-step-container">
               {renderCurrentStep()}
             </div>
           </div>
