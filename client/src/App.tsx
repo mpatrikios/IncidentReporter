@@ -21,25 +21,24 @@ function Router() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Login} />
+        <Route path="/login" component={Login} />
+        <Route component={Login} />
+      </Switch>
+    );
+  }
+
   return (
     <Switch>
-      {!isAuthenticated ? (
-        <>
-          <Route path="/" component={Login} />
-          <Route path="/login" component={Login} />
-          <Route component={Login} />
-        </>
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/home" component={Home} />
-          <Route path="/dashboard" component={Home} />
-          <Route path="/login" component={Home} />
-          <Route path="/report-wizard" component={ReportWizard} />
-          <Route path="/reports/:id" component={ReportWizard} />
-          <Route component={NotFound} />
-        </>
-      )}
+      <Route path="/" component={Home} />
+      <Route path="/home" component={Home} />
+      <Route path="/dashboard" component={Home} />
+      <Route path="/login" component={Home} />
+      <Route path="/report-wizard" component={ReportWizard} />
+      <Route path="/reports/:id" component={ReportWizard} />
     </Switch>
   );
 }

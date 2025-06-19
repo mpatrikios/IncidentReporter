@@ -80,14 +80,14 @@ export default function Home() {
       case 'in_review':
         return <Badge className="bg-blue-100 text-blue-700 border-blue-200">In Review</Badge>;
       default:
-        return <Badge className="bg-grey-100 text-grey-700 border-grey-200">{status}</Badge>;
+        return <Badge className="bg-gray-100 text-gray-700 border-gray-200">{status}</Badge>;
     }
   };
 
   return (
     <div className="min-h-screen">
       {/* Modern Header */}
-      <div className="bg-white border-b-2 border-grey-200 shadow-md sticky top-0 z-50">
+      <div className="bg-white border-b-2 border-gray-200 shadow-md sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -98,7 +98,7 @@ export default function Home() {
                 <h1 className="text-2xl font-bold text-blue-700">
                   Engineering Suite
                 </h1>
-                <div className="text-xs text-grey-600 font-medium">
+                <div className="text-xs text-gray-600 font-medium">
                   Civil Engineering Documentation Platform
                 </div>
               </div>
@@ -107,12 +107,12 @@ export default function Home() {
             <div className="flex items-center gap-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-3 px-4 py-2 rounded-xl bg-grey-50 border-2 border-grey-200 hover:bg-grey-100 hover:border-grey-300">
+                  <Button variant="ghost" className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gray-50 border-2 border-gray-200 hover:bg-gray-100 hover:border-gray-300">
                     <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-200">
                       <User className="h-4 w-4 text-blue-600" />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold text-grey-900">
+                      <span className="text-sm font-semibold text-gray-900">
                         {user?.fullName || user?.username}
                       </span>
                       {user?.isEngineer && (
@@ -121,15 +121,15 @@ export default function Home() {
                         </Badge>
                       )}
                     </div>
-                    <ChevronDown className="h-4 w-4 text-grey-600" />
+                    <ChevronDown className="h-4 w-4 text-gray-600" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 bg-white border-2 border-grey-200 shadow-lg">
+                <DropdownMenuContent align="end" className="w-64 bg-white border-2 border-gray-200 shadow-lg">
                   <div className="px-4 py-4">
-                    <p className="text-sm font-semibold text-grey-900">{user?.fullName || user?.username}</p>
-                    <p className="text-xs text-grey-600">{user?.email}</p>
+                    <p className="text-sm font-semibold text-gray-900">{user?.fullName || user?.username}</p>
+                    <p className="text-xs text-gray-600">{user?.email}</p>
                   </div>
-                  <DropdownMenuSeparator className="bg-grey-200" />
+                  <DropdownMenuSeparator className="bg-gray-200" />
                   <DropdownMenuItem 
                     onClick={handleLogout}
                     disabled={logout.isPending}
@@ -146,13 +146,13 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-grey-50 border-b-2 border-grey-200">
+      <div className="relative overflow-hidden bg-gray-50 border-b-2 border-gray-200">
         <div className="container mx-auto px-6 py-12">
           <div className="relative z-10 max-w-4xl">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-grey-900">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
               Welcome back, <span className="text-blue-700">{user?.firstName || user?.username}</span>
             </h2>
-            <p className="text-xl text-grey-700 mb-8 max-w-2xl">
+            <p className="text-xl text-gray-700 mb-8 max-w-2xl">
               Streamline your civil engineering documentation with intelligent automation and modern workflows
             </p>
             <Button 
@@ -170,13 +170,13 @@ export default function Home() {
       <div className="container mx-auto px-6 py-12">
         {/* Main Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          <Card className="bg-white border-2 border-grey-200 shadow-lg card-hover animate-scale-in">
+          <Card className="bg-white border-2 border-gray-200 shadow-lg card-hover animate-scale-in">
             <CardHeader className="text-center pb-4">
               <div className="p-4 bg-blue-100 rounded-xl w-fit mx-auto mb-4 border-2 border-blue-200">
                 <Plus className="h-8 w-8 text-blue-700" />
               </div>
-              <CardTitle className="text-xl text-grey-900">Create New Report</CardTitle>
-              <CardDescription className="text-base text-grey-600">
+              <CardTitle className="text-xl text-gray-900">Create New Report</CardTitle>
+              <CardDescription className="text-base text-gray-600">
                 Start a new engineering report using our intelligent step-by-step wizard
               </CardDescription>
             </CardHeader>
@@ -191,20 +191,20 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-2 border-grey-200 shadow-lg card-hover animate-scale-in">
+          <Card className="bg-white border-2 border-gray-200 shadow-lg card-hover animate-scale-in">
             <CardHeader className="pb-4">
-              <div className="p-4 bg-grey-100 rounded-xl w-fit mb-4 border-2 border-grey-200">
-                <FileText className="h-8 w-8 text-grey-700" />
+              <div className="p-4 bg-gray-100 rounded-xl w-fit mb-4 border-2 border-gray-200">
+                <FileText className="h-8 w-8 text-gray-700" />
               </div>
-              <CardTitle className="text-xl text-grey-900">My Reports</CardTitle>
-              <CardDescription className="text-base text-grey-600">
+              <CardTitle className="text-xl text-gray-900">My Reports</CardTitle>
+              <CardDescription className="text-base text-gray-600">
                 View and manage your saved engineering reports
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button 
                 variant="outline" 
-                className="w-full border-2 border-grey-300 text-grey-700 hover:bg-grey-100"
+                className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-100"
                 onClick={() => document.getElementById('my-reports-section')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 View My Reports ({reports.length})
@@ -213,13 +213,13 @@ export default function Home() {
           </Card>
 
           {user?.isEngineer && (
-            <Card className="bg-white border-2 border-grey-200 shadow-lg card-hover animate-scale-in">
+            <Card className="bg-white border-2 border-gray-200 shadow-lg card-hover animate-scale-in">
               <CardHeader className="pb-4">
                 <div className="p-4 bg-blue-50 rounded-xl w-fit mb-4 border-2 border-blue-200">
                   <User className="h-8 w-8 text-blue-600" />
                 </div>
-                <CardTitle className="text-xl text-grey-900">Review Queue</CardTitle>
-                <CardDescription className="text-base text-grey-600">
+                <CardTitle className="text-xl text-gray-900">Review Queue</CardTitle>
+                <CardDescription className="text-base text-gray-600">
                   Reports pending your engineering review and approval
                 </CardDescription>
               </CardHeader>
@@ -236,20 +236,20 @@ export default function Home() {
         <div id="my-reports-section" className="space-y-6 mb-16">
           <div className="text-center">
             <h2 className="text-3xl font-bold mb-2">My Reports</h2>
-            <p className="text-grey-600 text-lg">Manage your saved engineering reports</p>
+            <p className="text-gray-600 text-lg">Manage your saved engineering reports</p>
           </div>
 
           {isLoadingReports ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
-              <span className="ml-2 text-grey-600">Loading reports...</span>
+              <span className="ml-2 text-gray-600">Loading reports...</span>
             </div>
           ) : reports.length === 0 ? (
-            <Card className="bg-grey-50 border-2 border-grey-200">
+            <Card className="bg-gray-50 border-2 border-gray-200">
               <CardContent className="text-center py-12">
-                <FileText className="h-12 w-12 text-grey-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-grey-900 mb-2">No Reports Yet</h3>
-                <p className="text-grey-600 mb-4">Create your first engineering report to get started.</p>
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Reports Yet</h3>
+                <p className="text-gray-600 mb-4">Create your first engineering report to get started.</p>
                 <Button onClick={handleCreateReport} className="bg-blue-700 hover:bg-blue-800 text-white">
                   <Plus className="h-4 w-4 mr-2" />
                   Create New Report
@@ -259,30 +259,30 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.isArray(reports) && reports.map((report: any) => (
-                <Card key={report._id} className="bg-white border-2 border-grey-200 shadow-lg hover:shadow-xl transition-all duration-200">
+                <Card key={report._id} className="bg-white border-2 border-gray-200 shadow-lg hover:shadow-xl transition-all duration-200">
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start mb-2">
-                      <CardTitle className="text-lg text-grey-900 line-clamp-2">
+                      <CardTitle className="text-lg text-gray-900 line-clamp-2">
                         {report.title || `Report ${report.projectId}`}
                       </CardTitle>
                       {getStatusBadge(report.status)}
                     </div>
-                    <CardDescription className="text-sm text-grey-600">
+                    <CardDescription className="text-sm text-gray-600">
                       <div className="flex items-center gap-2 mb-1">
                         <Calendar className="h-3 w-3" />
                         Created {formatDate(report.createdAt)}
                       </div>
-                      <div className="text-xs text-grey-500">
+                      <div className="text-xs text-gray-500">
                         Project ID: {report.projectId}
                       </div>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-3 justify-center">
                       <Button 
                         size="sm" 
                         onClick={() => handleEditReport(report._id)}
-                        className="flex-1 bg-blue-700 hover:bg-blue-800 text-white"
+                        className="flex-1 min-w-[80px] bg-blue-700 hover:bg-blue-800 text-white"
                       >
                         <Edit className="h-3 w-3 mr-1" />
                         Edit
@@ -290,10 +290,10 @@ export default function Home() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        className={`flex-1 ${
+                        className={`flex-1 min-w-[80px] ${
                           report.googleDocId 
                             ? "border-green-300 text-green-700 hover:bg-green-50" 
-                            : "border-grey-300 text-grey-400"
+                            : "border-gray-300 text-gray-400"
                         }`}
                         disabled={!report.googleDocId}
                         onClick={() => {
@@ -310,7 +310,7 @@ export default function Home() {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+                            className="flex-1 min-w-[80px] border-red-300 text-red-700 hover:bg-red-50"
                           >
                             <Trash2 className="h-3 w-3 mr-1" />
                             Delete
@@ -347,7 +347,7 @@ export default function Home() {
         <div className="space-y-6">
           <div className="text-center">
             <h2 className="text-3xl font-bold mb-2">Quick Actions</h2>
-            <p className="text-grey-600 text-lg">Explore additional features and resources</p>
+            <p className="text-gray-600 text-lg">Explore additional features and resources</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -359,7 +359,7 @@ export default function Home() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-2">Report Templates</h3>
-                    <p className="text-grey-600 mb-4">
+                    <p className="text-gray-600 mb-4">
                       Browse available report templates and engineering standards
                     </p>
                     <Button variant="outline" size="sm" disabled className="hover:bg-blue-600 hover:text-white">
@@ -378,7 +378,7 @@ export default function Home() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-2">Help & Documentation</h3>
-                    <p className="text-grey-600 mb-4">
+                    <p className="text-gray-600 mb-4">
                       Learn how to use the report wizard and platform features
                     </p>
                     <Button variant="outline" size="sm" disabled className="hover:bg-orange-600 hover:text-white">

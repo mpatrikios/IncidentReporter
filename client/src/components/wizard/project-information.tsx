@@ -10,7 +10,7 @@ import type { StepRef } from "@/lib/types";
 
 interface ProjectInformationProps {
   initialData?: Partial<ProjectInformation>;
-  onSubmit: (data: ProjectInformation) => void;
+  onSubmit?: (data: ProjectInformation) => void;
   onPrevious?: () => void;
   isFirstStep?: boolean;
   reportId?: string | null;
@@ -18,7 +18,7 @@ interface ProjectInformationProps {
 
 export const ProjectInformationStep = forwardRef<StepRef<ProjectInformation>, ProjectInformationProps>(({ 
   initialData, 
-  onSubmit, 
+  onSubmit = () => {}, 
   onPrevious,
   isFirstStep = false,
   reportId 

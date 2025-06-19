@@ -5,20 +5,21 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { FileUpload, type UploadedFile } from "@/components/ui/file-upload";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import { useEffect, forwardRef, useImperativeHandle } from "react";
+import { useEffect, forwardRef, useImperativeHandle, useState } from "react";
 import type { StepRef } from "@/lib/types";
 
 interface BuildingAndSiteProps {
   initialData?: Partial<BuildingAndSite>;
-  onSubmit: (data: BuildingAndSite) => void;
+  onSubmit?: (data: BuildingAndSite) => void;
   onPrevious?: () => void;
   reportId?: string | null;
 }
 
 export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, BuildingAndSiteProps>(({ 
   initialData, 
-  onSubmit, 
+  onSubmit = () => {}, 
   onPrevious,
   reportId 
 }, ref) => {
@@ -35,6 +36,12 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
       ...initialData,
     },
   });
+
+  // File upload state
+  const [buildingPhotos, setBuildingPhotos] = useState<UploadedFile[]>([]);
+  const [exteriorPhotos, setExteriorPhotos] = useState<UploadedFile[]>([]);
+  const [interiorPhotos, setInteriorPhotos] = useState<UploadedFile[]>([]);
+  const [siteDocuments, setSiteDocuments] = useState<UploadedFile[]>([]);
 
   useImperativeHandle(ref, () => ({
     save: async () => {
@@ -180,6 +187,19 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
                 </FormItem>
               )}
             />
+            
+            {/* Building Documentation Upload */}
+            <div className="mt-6">
+              <FileUpload
+                category="Building Documentation"
+                onFilesChange={setBuildingPhotos}
+                initialFiles={buildingPhotos}
+                acceptedFileTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf']}
+                maxFiles={10}
+                maxFileSize={10}
+                className="border-t border-amber-200 pt-6"
+              />
+            </div>
           </div>
 
           {/* Site Observations */}
@@ -221,6 +241,19 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
                 </FormItem>
               )}
             />
+            
+            {/* Exterior Photos Upload */}
+            <div className="mt-6">
+              <FileUpload
+                category="Exterior Photos"
+                onFilesChange={setExteriorPhotos}
+                initialFiles={exteriorPhotos}
+                acceptedFileTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/gif']}
+                maxFiles={15}
+                maxFileSize={10}
+                className="border-t border-green-200 pt-6"
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -249,6 +282,19 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
                 </FormItem>
               )}
             />
+            
+            {/* Interior Photos Upload */}
+            <div className="mt-6">
+              <FileUpload
+                category="Interior Photos"
+                onFilesChange={setInteriorPhotos}
+                initialFiles={interiorPhotos}
+                acceptedFileTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/gif']}
+                maxFiles={15}
+                maxFileSize={10}
+                className="border-t border-green-200 pt-6"
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -276,6 +322,19 @@ export const BuildingAndSiteStep = forwardRef<StepRef<BuildingAndSite>, Building
                 </FormItem>
               )}
             />
+            
+            {/* Site Documents Upload */}
+            <div className="mt-6">
+              <FileUpload
+                category="Site Documents & Other Photos"
+                onFilesChange={setSiteDocuments}
+                initialFiles={siteDocuments}
+                acceptedFileTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
+                maxFiles={10}
+                maxFileSize={10}
+                className="border-t border-green-200 pt-6"
+              />
+            </div>
           </div>
 
           <div className="flex justify-between items-center pt-6">

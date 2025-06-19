@@ -18,6 +18,8 @@ import { z } from "zod";
 import mongoose from "mongoose";
 import { noaaService } from "./services/noaaService";
 import { aiTextService } from "./services/aiTextService";
+import imageRoutes from "./routes/imageRoutes";
+import wordRoutes from "./routes/wordRoutes";
 
 // Utility function to validate ObjectId
 function isValidObjectId(id: string): boolean {
@@ -37,6 +39,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   if (isGoogleOAuthConfigured) {
     app.get('/auth/google',
+      (req, res, next) => {
+        // Store the return URL in session if provided
+        const returnTo = req.query.returnTo as string;
+        if (returnTo) {
+          (req.session as any).returnTo = returnTo;
+        }
+        next();
+      },
       passport.authenticate('google', { 
         scope: [
           'profile', 
@@ -50,8 +60,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get('/auth/google/callback',
       passport.authenticate('google', { failureRedirect: '/login' }),
       (req, res) => {
-        // Successful authentication, redirect to dashboard
-        res.redirect('/dashboard');
+        // Check if there's a return URL in session
+        const returnTo = (req.session as any).returnTo;
+        if (returnTo) {
+          delete (req.session as any).returnTo; // Clear the return URL
+          res.redirect(returnTo);
+        } else {
+          // Default redirect to dashboard
+          res.redirect('/dashboard');
+        }
       }
     );
   } else {
@@ -86,6 +103,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(req.user);
     } else {
       res.status(401).json({ message: "Not authenticated" });
+    }
+  });
+
+  // Check Google authentication status
+  app.get("/api/auth/google-status", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.json({
+          hasGoogleAuth: false,
+          tokenExpired: true,
+          needsReauth: true,
+          authUrl: '/auth/google',
+          message: 'User not authenticated'
+        });
+      }
+
+      const userId = (req.user as any)._id.toString();
+      const user = await storage.getUserWithTokens(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const hasGoogleAuth = !!(user.googleAccessToken && user.googleRefreshToken);
+      const tokenExpired = user.tokenExpiresAt ? new Date() > user.tokenExpiresAt : true;
+
+      res.json({
+        hasGoogleAuth,
+        tokenExpired,
+        needsReauth: !hasGoogleAuth || tokenExpired,
+        authUrl: hasGoogleAuth ? null : '/auth/google'
+      });
+    } catch (error) {
+      console.error('Error checking Google auth status:', error);
+      res.status(500).json({ message: "Failed to check Google authentication status" });
     }
   });
 
@@ -408,7 +460,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reportId = req.params.id;
       const userId = (req.user as any)._id.toString();
-      const { aiEnhanceText } = req.body;
+      const { aiEnhanceText, includePhotosInline } = req.body;
+      
+      console.log('DEBUG: Generate doc request for report:', reportId, 'user:', userId);
       
       if (!isValidObjectId(reportId)) {
         return res.status(400).json({ message: "Invalid report ID" });
@@ -419,6 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!report) {
         return res.status(404).json({ message: "Report not found" });
       }
+
+      console.log('DEBUG: Report found, checking user authentication...');
 
       // Import the Google Docs service
       const { googleDocsService } = await import('./services/googleDocsService.js');
@@ -471,7 +527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reportTitle = `Civil Engineering Report - ${formData?.projectInformation?.insuredName || 'Report'} - ${new Date().toLocaleDateString()}`;
 
       // Generate from configured template using user's credentials
-      const googleDocId = await googleDocsService.generateFromTemplate(userId, reportData, reportTitle, aiEnhanceText);
+      const googleDocId = await googleDocsService.generateFromTemplate(userId, reportData, reportTitle, aiEnhanceText, includePhotosInline);
       
       if (!googleDocId) {
         throw new Error('Failed to generate document');
@@ -489,42 +545,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error generating Google Doc:', error);
-      res.status(500).json({ 
-        message: "Failed to generate Google Doc", 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      
+      let statusCode = 500;
+      let errorMessage = "Failed to generate Google Doc";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Set appropriate status codes for specific errors
+        if (error.message.includes('not authenticated') || error.message.includes('access token')) {
+          statusCode = 401;
+          errorMessage = "Google authentication required. Please re-authenticate with Google.";
+        } else if (error.message.includes('Template access denied') || error.message.includes('403')) {
+          statusCode = 403;
+          errorMessage = "Template access denied. Please ensure the template is shared properly.";
+        } else if (error.message.includes('Template document not found') || error.message.includes('404')) {
+          statusCode = 404;
+          errorMessage = "Template document not found. Please check the template configuration.";
+        }
+      }
+      
+      // Ensure we always return JSON, never HTML
+      res.status(statusCode).json({ 
+        message: errorMessage,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        success: false
       });
     }
   });
 
-  // Google OAuth endpoints
-  app.get("/auth/google", async (req, res) => {
-    try {
-      const { googleDocsService } = await import('./services/googleDocsService.js');
-      const authUrl = googleDocsService.getAuthUrl();
-      res.redirect(authUrl);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to initialize Google auth" });
-    }
-  });
-
-  app.get("/auth/google/callback", async (req, res) => {
-    try {
-      const { code } = req.query;
-      
-      if (!code || typeof code !== 'string') {
-        return res.status(400).json({ message: "Authorization code not provided" });
-      }
-
-      const { googleDocsService } = await import('./services/googleDocsService.js');
-      await googleDocsService.setAuthTokens(code);
-      
-      // Redirect back to the application with success
-      res.redirect("/?auth=success");
-    } catch (error) {
-      console.error('Google OAuth callback error:', error);
-      res.redirect("/?auth=error");
-    }
-  });
 
   // Check Google authentication status
   app.get("/api/google/auth-status", async (req, res) => {
@@ -622,6 +671,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Register image routes
+  app.use(imageRoutes);
+  
+  // Register Word generation routes
+  app.use(wordRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

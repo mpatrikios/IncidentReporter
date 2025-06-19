@@ -5,20 +5,21 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { FileUpload, type UploadedFile } from "@/components/ui/file-upload";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import { useEffect, forwardRef, useImperativeHandle } from "react";
+import { useEffect, forwardRef, useImperativeHandle, useState } from "react";
 import type { StepRef } from "@/lib/types";
 
 interface AssignmentScopeProps {
   initialData?: Partial<AssignmentScope>;
-  onSubmit: (data: AssignmentScope) => void;
+  onSubmit?: (data: AssignmentScope) => void;
   onPrevious?: () => void;
   reportId?: string | null;
 }
 
 export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, AssignmentScopeProps>(({ 
   initialData, 
-  onSubmit, 
+  onSubmit = () => {}, 
   onPrevious,
   reportId 
 }, ref) => {
@@ -31,6 +32,9 @@ export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, Assignme
       ...initialData,
     },
   });
+
+  // File upload state
+  const [documentFiles, setDocumentFiles] = useState<UploadedFile[]>([]);
 
   // Expose save method to parent
   useImperativeHandle(ref, () => ({
@@ -159,6 +163,19 @@ export const AssignmentScopeStep = forwardRef<StepRef<AssignmentScope>, Assignme
                 </FormItem>
               )}
             />
+            
+            {/* Document Upload */}
+            <div className="mt-6">
+              <FileUpload
+                category="Document Review Files"
+                onFilesChange={setDocumentFiles}
+                initialFiles={documentFiles}
+                acceptedFileTypes={['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/jpg', 'image/png']}
+                maxFiles={20}
+                maxFileSize={15}
+                className="border-t border-amber-200 pt-6"
+              />
+            </div>
           </div>
 
           {/* Additional Methodology Notes */}

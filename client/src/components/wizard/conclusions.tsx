@@ -8,17 +8,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle, FileText, Save, Clock, Wand2 } from "lucide-react";
+import { CheckCircle, FileText, Save, Clock, Wand2, Download } from "lucide-react";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useEffect, forwardRef, useImperativeHandle } from "react";
 import type { StepRef } from "@/lib/types";
 import { useLocation } from "wouter";
+import { wordDocumentService } from "@/services/wordDocumentService";
 
 interface ConclusionsProps {
   initialData?: Partial<Conclusions>;
-  onSubmit: (data: Conclusions) => void;
+  onSubmit?: (data: Conclusions) => void;
   onPrevious?: () => void;
   reportId?: string | null;
   formData?: any;
@@ -28,7 +29,7 @@ interface ConclusionsProps {
 
 export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps>(({ 
   initialData, 
-  onSubmit, 
+  onSubmit = () => {}, 
   onPrevious,
   reportId,
   formData: _formData,
@@ -38,9 +39,30 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
   const [reportTitle, setReportTitle] = useState(initialTitle || "");
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
+  const [wordProgress, setWordProgress] = useState(0);
+  const [wordProgressMessage, setWordProgressMessage] = useState('');
   const [aiEnhanceText, setAiEnhanceText] = useState(false);
+  const [includePhotosInline, setIncludePhotosInline] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Check for auto-generate parameter (when returning from Google auth)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoGenerate = urlParams.get('autoGenerate');
+    
+    if (autoGenerate === 'true') {
+      // Remove the parameter from URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      
+      // Auto-trigger document generation after a short delay
+      setTimeout(() => {
+        handleGenerateDoc();
+      }, 1000);
+    }
+  }, []);
 
   // Auto-save the title directly to the report record
   useEffect(() => {
@@ -100,47 +122,220 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
     console.log('DEBUG: Starting Google Doc generation for report ID:', reportId);
     setIsGeneratingDoc(true);
     try {
+      // First check Google authentication status
+      console.log('DEBUG: Checking Google authentication status...');
+      const authStatusResponse = await apiRequest("GET", "/api/auth/google-status");
+      const authStatus = await authStatusResponse.json();
+      console.log('DEBUG: Google auth status:', authStatus);
+      
+      if (authStatus.needsReauth) {
+        toast({
+          title: "Additional Google Permissions Required",
+          description: "We need permission to create Google Docs in your account. Redirecting to Google in 2 seconds...",
+          variant: "destructive",
+        });
+        
+        // Set generating state to show loading
+        setIsGeneratingDoc(true);
+        
+        // Add a small delay so user can read the message
+        setTimeout(() => {
+          // Redirect to Google OAuth with return URL - user will come back to this report page and auto-generate doc
+          const currentUrl = `${window.location.pathname}?autoGenerate=true`;
+          window.location.href = `/auth/google?returnTo=${encodeURIComponent(currentUrl)}`;
+        }, 2000);
+        return;
+      }
+
       console.log('DEBUG: Making API request to generate doc...');
       const response = await apiRequest("POST", `/api/reports/${reportId}/generate-doc`, {
-        aiEnhanceText
+        aiEnhanceText,
+        includePhotosInline
       });
       console.log('DEBUG: Raw API response:', response);
+      console.log('DEBUG: Response status:', response.status);
+      console.log('DEBUG: Response headers:', response.headers);
       
-      const data = await response.json();
-      console.log('DEBUG: Parsed response data:', data);
+      // Check content type before parsing
+      const contentType = response.headers.get("content-type");
+      console.log('DEBUG: Content-Type:', contentType);
+      
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+        console.log('DEBUG: Parsed response data:', data);
+      } else {
+        // Response is not JSON, likely HTML error page
+        const textResponse = await response.text();
+        console.log('DEBUG: Non-JSON response:', textResponse.substring(0, 500));
+        
+        if (textResponse.includes('<!DOCTYPE') || textResponse.includes('<html')) {
+          throw new Error('Server returned HTML instead of JSON. This usually indicates an authentication or server error.');
+        } else {
+          throw new Error(`Unexpected response format: ${textResponse.substring(0, 200)}`);
+        }
+      }
       
       if (data.documentUrl) {
         console.log('DEBUG: Opening document URL:', data.documentUrl);
         window.open(data.documentUrl, '_blank');
+        
+        toast({
+          title: "Document Generated",
+          description: "Google Doc has been generated successfully.",
+        });
       } else {
         console.log('DEBUG: No documentUrl in response');
+        throw new Error('No document URL returned from server');
       }
       
-      toast({
-        title: "Document Generated",
-        description: "Google Doc has been generated successfully.",
-      });
     } catch (error: any) {
       console.error('DEBUG: Error during doc generation:', error);
-      if (error.message?.includes('not authenticated')) {
+      
+      // Parse error message from response
+      let errorMessage = "Failed to generate Google Doc. Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response) {
+        try {
+          const errorData = await error.response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+      }
+      
+      if (errorMessage.includes('not authenticated') || errorMessage.includes('access token')) {
         toast({
           title: "Authentication Required",
-          description: "Please authenticate with Google first.",
+          description: "Please re-authenticate with Google and try again.",
           variant: "destructive",
         });
-        // Optionally redirect to auth  
-        if (error.authUrl) {
-          window.open(error.authUrl, '_blank');
-        }
+        // Open Google OAuth in new window
+        window.open('/auth/google', '_blank');
       } else {
         toast({
           title: "Generation Failed",
-          description: error.message || "Failed to generate Google Doc. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
     } finally {
       setIsGeneratingDoc(false);
+    }
+  };
+
+  const handleGenerateWordDoc = async () => {
+    console.log('DEBUG: Starting Word doc generation for report ID:', reportId);
+    setIsGeneratingWord(true);
+    setWordProgress(0);
+    setWordProgressMessage('');
+    
+    try {
+      // Compile report data from steps
+      const reportData = {
+        projectInformation: getStepData(1),
+        assignmentScope: getStepData(2),
+        buildingObservations: getStepData(3),
+        research: getStepData(4),
+        discussionAnalysis: getStepData(5),
+        conclusions: form.getValues(),
+      };
+
+      // Get images from the report (TODO: Replace with actual image API call)
+      let images = [];
+      try {
+        const imagesResponse = await apiRequest("GET", `/api/reports/${reportId}/images`);
+        images = await imagesResponse.json();
+      } catch (error) {
+        console.warn('Failed to fetch images, proceeding without images:', error);
+        images = [];
+      }
+
+      // Check if client-side generation is feasible
+      const canGenerateClientSide = await wordDocumentService.canGenerateClientSide(images);
+
+      if (canGenerateClientSide) {
+        // Client-side generation
+        await wordDocumentService.generateDocument({
+          title: reportTitle || 'Engineering Report',
+          reportData,
+          images: images.map(img => ({
+            originalFilename: img.originalFilename,
+            googleDriveUrl: img.googleDriveUrl,
+            publicUrl: img.publicUrl,
+            fileSize: img.fileSize,
+            description: img.description,
+          })),
+          includePhotosInline,
+          aiEnhanceText,
+          onProgress: (progress, message) => {
+            setWordProgress(progress);
+            setWordProgressMessage(message);
+          }
+        });
+
+        toast({
+          title: "Word Document Generated",
+          description: "Document has been generated and downloaded successfully.",
+        });
+      } else {
+        // Fallback to server-side generation
+        setWordProgressMessage('Using server-side generation for large document...');
+        
+        const response = await apiRequest("POST", `/api/reports/generate-word`, {
+          title: reportTitle || 'Engineering Report',
+          reportData,
+          images: images.map(img => ({
+            originalFilename: img.originalFilename,
+            googleDriveUrl: img.googleDriveUrl,
+            publicUrl: img.publicUrl,
+            fileSize: img.fileSize,
+            description: img.description,
+          })),
+          includePhotosInline,
+          aiEnhanceText,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Server generation failed');
+        }
+
+        // Download the file
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${reportTitle.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast({
+          title: "Word Document Generated",
+          description: "Document has been generated and downloaded successfully (server-side).",
+        });
+      }
+      
+    } catch (error: any) {
+      console.error('DEBUG: Error during Word doc generation:', error);
+      
+      let errorMessage = "Failed to generate Word document. Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Generation Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingWord(false);
+      setWordProgress(0);
+      setWordProgressMessage('');
     }
   };
 
@@ -313,7 +508,7 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-slate-600">
-                Generate a Google Doc version of your report for easy sharing and printing.
+                Generate your report in Google Docs or Word format for easy sharing and printing.
               </p>
               
               {/* AI Enhancement Option */}
@@ -337,25 +532,91 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
                 </div>
               </div>
               
-              <Button
-                type="button"
-                onClick={handleGenerateDoc}
-                disabled={!allSectionsComplete || isGeneratingDoc}
-                className="w-full"
-                variant="outline"
-              >
-                {isGeneratingDoc ? (
-                  <>
-                    <Clock className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Document...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Generate Google Doc
-                  </>
-                )}
-              </Button>
+              {/* Photo Handling Option */}
+              <div className="flex items-center space-x-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <Checkbox
+                  id="photos-inline"
+                  checked={includePhotosInline}
+                  onCheckedChange={(checked) => setIncludePhotosInline(checked === true)}
+                />
+                <div className="flex-1">
+                  <label
+                    htmlFor="photos-inline"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center"
+                  >
+                    <FileText className="h-4 w-4 mr-2 text-green-600" />
+                    Include photos inline in document
+                  </label>
+                  <p className="text-xs text-slate-600 mt-1 ml-6">
+                    If checked: Photos will be embedded directly in the document. If unchecked: Photos will be referenced by filename only.
+                  </p>
+                </div>
+              </div>
+
+              {/* Word Generation Progress */}
+              {isGeneratingWord && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>{wordProgressMessage || 'Generating Word document...'}</span>
+                    <span>{wordProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${wordProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Generation Buttons */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  onClick={handleGenerateDoc}
+                  disabled={!allSectionsComplete || isGeneratingDoc || isGeneratingWord}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {isGeneratingDoc ? (
+                    <>
+                      <Clock className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Google Doc...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate Google Doc
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={handleGenerateWordDoc}
+                  disabled={!allSectionsComplete || isGeneratingDoc || isGeneratingWord}
+                  className="w-full"
+                  variant="default"
+                >
+                  {isGeneratingWord ? (
+                    <>
+                      <Clock className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Word Doc...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-4 w-4" />
+                      Generate Word Document
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Format Information */}
+              <div className="text-xs text-slate-500 space-y-1">
+                <p><strong>Google Doc:</strong> Opens online, requires Google account, easy to share and edit</p>
+                <p><strong>Word Document:</strong> Downloads to your device, works offline, professional format (.docx)</p>
+              </div>
             </CardContent>
           </Card>
 

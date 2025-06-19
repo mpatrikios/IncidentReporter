@@ -156,12 +156,15 @@ Step numbers (1-6) are hardcoded throughout the system and must remain consisten
 ### Google Docs Template Integration
 - **Template Configuration**: Template ID stored in `server/config/template.json`
 - **Field Mapping**: Form fields must match template placeholders exactly:
-  - Project Info: `{{insured_name}}`, `{{claim_number}}`, `{{client_company}}`, etc.
-  - Assignment: `{{assignment_scope}}`, `{{site_contact}}`, `{{interviewees}}`, etc.
-  - Building: `{{building_description}}`, `{{exterior_observations}}`, etc.
-  - Research: `{{weather_data_summary}}`, `{{corelogic_data_summary}}`
-  - Analysis: `{{discussion_and_analysis}}`
-  - Conclusions: `{{conclusions}}`
+  - **Project Info**: `{{file_number}}`, `{{insured_name}}`, `{{claim_number}}`, `{{client_company}}`, `{{engineer_name}}`, etc.
+  - **Assignment Scope**: `{{interviewees_names}}`, `{{provided_documents_titles}}`, `{{document_files}}`
+  - **Building & Site**: `{{building_system_description}}`, `{{exterior_observations}}`, `{{interior_observations}}`, `{{building_photos}}`, `{{exterior_photos}}`, `{{interior_photos}}`, `{{site_documents}}`
+  - **Research**: `{{weather_data_summary}}`, `{{corelogic_hail_summary}}`, `{{corelogic_wind_summary}}`
+  - **Analysis**: `{{site_discussion_analysis}}`, `{{weather_discussion_analysis}}`, `{{weather_impact_analysis}}`, `{{recommendations_and_discussion}}`
+  - **Conclusions**: `{{conclusions}}`
+- **Photo Handling Options**:
+  - **Inline Photos**: When enabled, adds placeholder text for photo insertion locations
+  - **Referenced Photos**: When disabled, lists photo filenames as references
 - **Data Flow**: Report steps → Compiled data → Template placeholders → Generated document
 - **Authentication Required**: Users must authenticate via `/auth/google` before generating documents
 
