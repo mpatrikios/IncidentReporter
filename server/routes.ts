@@ -18,6 +18,8 @@ import { z } from "zod";
 import mongoose from "mongoose";
 import { noaaService } from "./services/noaaService";
 import { aiTextService } from "./services/aiTextService";
+import imageRoutes from "./routes/imageRoutes";
+import wordRoutes from "./routes/wordRoutes";
 
 // Utility function to validate ObjectId
 function isValidObjectId(id: string): boolean {
@@ -669,6 +671,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Register image routes
+  app.use(imageRoutes);
+  
+  // Register Word generation routes
+  app.use(wordRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

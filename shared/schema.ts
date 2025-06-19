@@ -95,6 +95,47 @@ formStepSchema.index({ reportId: 1, stepNumber: 1 }, { unique: true });
 
 export const FormStep = mongoose.model<IFormStep>('FormStep', formStepSchema);
 
+// Report Image Interface and Schema
+export interface IReportImage extends Document {
+  reportId: mongoose.Types.ObjectId;
+  stepNumber?: number; // Which step this image belongs to (optional)
+  filename: string;
+  originalFilename: string;
+  fileSize: number;
+  mimeType: string;
+  googleDriveId: string;
+  googleDriveUrl?: string;
+  publicUrl?: string;
+  uploadOrder: number;
+  description?: string;
+  category?: string; // building, exterior, interior, documents, etc.
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const reportImageSchema = new Schema<IReportImage>({
+  reportId: { type: Schema.Types.ObjectId, ref: 'Report', required: true, index: true },
+  stepNumber: { type: Number },
+  filename: { type: String, required: true },
+  originalFilename: { type: String, required: true },
+  fileSize: { type: Number, required: true },
+  mimeType: { type: String, required: true },
+  googleDriveId: { type: String, required: true, unique: true },
+  googleDriveUrl: { type: String },
+  publicUrl: { type: String },
+  uploadOrder: { type: Number, required: true },
+  description: { type: String },
+  category: { type: String },
+}, {
+  timestamps: true
+});
+
+// Compound index for efficient queries
+reportImageSchema.index({ reportId: 1, uploadOrder: 1 });
+reportImageSchema.index({ reportId: 1, category: 1 });
+
+export const ReportImage = mongoose.model<IReportImage>('ReportImage', reportImageSchema);
+
 // Form data schemas based on Civil Engineering Report template
 export const projectInformationSchema = z.object({
   fileNumber: z.string().min(1, "EFI Global file number is required"),
@@ -194,10 +235,37 @@ export const createFormStepSchema = z.object({
   data: z.any().optional(),
 });
 
+export const uploadImageSchema = z.object({
+  reportId: z.string(),
+  stepNumber: z.number().optional(),
+  description: z.string().optional(),
+  category: z.enum(['building', 'exterior', 'interior', 'documents', 'other']).optional(),
+});
+
+export const imageResponseSchema = z.object({
+  id: z.string(),
+  reportId: z.string(),
+  stepNumber: z.number().optional(),
+  filename: z.string(),
+  originalFilename: z.string(),
+  fileSize: z.number(),
+  mimeType: z.string(),
+  googleDriveId: z.string(),
+  googleDriveUrl: z.string().optional(),
+  publicUrl: z.string().optional(),
+  uploadOrder: z.number(),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
 // Type exports
 export type GoogleUser = z.infer<typeof googleUserSchema>;
 export type CreateReport = z.infer<typeof createReportSchema>;
 export type CreateFormStep = z.infer<typeof createFormStepSchema>;
+export type UploadImage = z.infer<typeof uploadImageSchema>;
+export type ImageResponse = z.infer<typeof imageResponseSchema>;
 
 export type ProjectInformation = z.infer<typeof projectInformationSchema>;
 export type AssignmentScope = z.infer<typeof assignmentScopeSchema>;
