@@ -14,7 +14,6 @@ A comprehensive web application for creating, managing, and generating professio
 A comprehensive 6-step wizard for creating professional engineering reports:
 
 1. **Project Information**
-   - EFI Global file numbers, dates, and project details
    - Insured and client information
    - Engineering team assignments
    - Property location data (with lat/lng support for NOAA integration)
