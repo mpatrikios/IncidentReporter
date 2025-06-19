@@ -1,7 +1,4 @@
-import { c } from 'node_modules/vite/dist/node/types.d-aGj9QkWt';
 import OpenAI from 'openai';
-
-
 
 interface AITextGenerationOptions {
   bulletPoints: string;

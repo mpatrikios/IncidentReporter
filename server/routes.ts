@@ -524,10 +524,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate report title
-      const reportTitle = `Civil Engineering Report - ${formData?.projectInformation?.insuredName || 'Report'} - ${new Date().toLocaleDateString()}`;
+      const reportTitle = report.title || `Civil Engineering Report - ${reportData?.projectInformation?.insuredName || 'Unnamed'} - ${new Date().toLocaleDateString()}`;
 
-      // Generate from configured template using user's credentials
-      const googleDocId = await googleDocsService.generateFromTemplate(userId, reportData, reportTitle, aiEnhanceText, includePhotosInline);
+      // Generate professional report using the new method
+      const googleDocId = await googleDocsService.createProfessionalReport(userId, reportData, reportTitle, aiEnhanceText);
       
       if (!googleDocId) {
         throw new Error('Failed to generate document');

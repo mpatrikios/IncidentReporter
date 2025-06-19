@@ -1,0 +1,518 @@
+{
+  "documentSettings": {
+    "title": "Civil Engineering Report",
+    "margins": {
+      "top": 72,
+      "bottom": 72,
+      "left": 72,
+      "right": 72
+    },
+    "defaultFont": {
+      "family": "Times New Roman",
+      "size": 12
+    }
+  },
+  "sections": [
+    {
+      "id": "header",
+      "type": "header",
+      "content": [
+        {
+          "type": "text",
+          "content": "EFI GLOBAL",
+          "style": {
+            "fontSize": 24,
+            "bold": true,
+            "alignment": "CENTER",
+            "spaceAfter": 12
+          }
+        },
+        {
+          "type": "text",
+          "content": "STRUCTURAL ENGINEERING CONSULTANTS",
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "alignment": "CENTER",
+            "spaceAfter": 6
+          }
+        },
+        {
+          "type": "text",
+          "content": "123 Engineering Way, Suite 100 • Professional City, ST 12345\nPhone: (555) 123-4567 • Email: info@efiglobal.com",
+          "style": {
+            "fontSize": 11,
+            "alignment": "CENTER",
+            "spaceAfter": 24
+          }
+        },
+        {
+          "type": "text",
+          "content": "CIVIL ENGINEERING REPORT",
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "alignment": "CENTER",
+            "spaceAfter": 24
+          }
+        }
+      ]
+    },
+    {
+      "id": "file_information",
+      "type": "section",
+      "title": "FILE INFORMATION",
+      "content": [
+        {
+          "type": "table",
+          "rows": [
+            ["EFI Global File No.:", "{{file_number}}"],
+            ["Date of Report:", "{{date_of_creation}}"],
+            ["Insured:", "{{insured_name}}"],
+            ["Insured Address:", "{{insured_address}}"],
+            ["Date of Loss:", "{{date_of_loss}}"],
+            ["Claim Number:", "{{claim_number}}"],
+            ["Client Company:", "{{client_company}}"],
+            ["Client Contact:", "{{client_contact}}"],
+            ["Engineer:", "{{engineer_name}}"],
+            ["Technical Reviewer:", "{{technical_reviewer}}"],
+            ["Assignment Received:", "{{received_date}}"],
+            ["Site Visit Date:", "{{site_visit_date}}"]
+          ],
+          "style": {
+            "borderStyle": "SOLID",
+            "borderWidth": 1,
+            "spaceAfter": 24
+          }
+        }
+      ]
+    },
+    {
+      "id": "assignment",
+      "type": "section",
+      "title": "ASSIGNMENT",
+      "content": [
+        {
+          "type": "text",
+          "content": "EFI Global was retained to conduct a structural engineering assessment of the above-referenced property following reported damage. This report presents our findings and professional opinions based on site observations, research, and engineering analysis.",
+          "style": {
+            "spaceAfter": 12
+          }
+        }
+      ]
+    },
+    {
+      "id": "methodology",
+      "type": "section",
+      "title": "METHODOLOGY",
+      "content": [
+        {
+          "type": "text",
+          "content": "Our investigation included the following components:",
+          "style": {
+            "spaceAfter": 6
+          }
+        },
+        {
+          "type": "list",
+          "items": [
+            "Site visit and visual inspection of the structure",
+            "Photography of observed conditions",
+            "Interviews with: {{interviewees_names}}",
+            "Review of provided documentation: {{provided_documents_titles}}",
+            "Weather research and data analysis",
+            "Engineering analysis of findings"
+          ],
+          "style": {
+            "spaceAfter": 12
+          }
+        }
+      ]
+    },
+    {
+      "id": "background",
+      "type": "section",
+      "title": "BACKGROUND",
+      "content": [
+        {
+          "type": "subsection",
+          "title": "Property Information",
+          "content": [
+            {
+              "type": "text",
+              "content": "Structure Built: {{structure_built_date}} (approximately {{structure_age}} years old)\nFront Facing Direction: {{front_facing_direction}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "building_system",
+      "type": "section",
+      "title": "BUILDING SYSTEM DESCRIPTION",
+      "content": [
+        {
+          "type": "text",
+          "content": "{{building_system_description}}",
+          "style": {
+            "spaceAfter": 12
+          }
+        }
+      ]
+    },
+    {
+      "id": "site_observations",
+      "type": "section",
+      "title": "SITE OBSERVATIONS",
+      "content": [
+        {
+          "type": "subsection",
+          "title": "Exterior Observations",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{exterior_observations}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        },
+        {
+          "type": "subsection",
+          "title": "Interior Observations",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{interior_observations}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        },
+        {
+          "type": "subsection",
+          "title": "Additional Site Observations",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{other_site_observations}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "research",
+      "type": "section",
+      "title": "RESEARCH",
+      "content": [
+        {
+          "type": "subsection",
+          "title": "Weather Data Summary",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{weather_data_summary}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        },
+        {
+          "type": "subsection",
+          "title": "CoreLogic Hail Analysis",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{corelogic_hail_summary}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        },
+        {
+          "type": "subsection",
+          "title": "CoreLogic Wind Analysis",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{corelogic_wind_summary}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "discussion_analysis",
+      "type": "section",
+      "title": "DISCUSSION AND ANALYSIS",
+      "content": [
+        {
+          "type": "subsection",
+          "title": "Site Analysis",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{site_discussion_analysis}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        },
+        {
+          "type": "subsection",
+          "title": "Weather Analysis",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{weather_discussion_analysis}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        },
+        {
+          "type": "subsection",
+          "title": "Weather Impact Analysis",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{weather_impact_analysis}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        },
+        {
+          "type": "subsection",
+          "title": "Recommendations and Discussion",
+          "content": [
+            {
+              "type": "text",
+              "content": "{{recommendations_and_discussion}}",
+              "style": {
+                "spaceAfter": 12
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "conclusions",
+      "type": "section",
+      "title": "CONCLUSIONS",
+      "content": [
+        {
+          "type": "text",
+          "content": "{{conclusions}}",
+          "style": {
+            "spaceAfter": 24
+          }
+        }
+      ]
+    },
+    {
+      "id": "limitations",
+      "type": "section",
+      "title": "LIMITATIONS",
+      "content": [
+        {
+          "type": "text",
+          "content": "This report is based upon a visual inspection of accessible areas of the structure at the time of our site visit. Our opinions are based on generally accepted engineering principles and practices. This assessment does not constitute a comprehensive structural analysis and is limited to the specific scope of our assignment.\n\nThis report is prepared exclusively for the use of our client and may not be relied upon by third parties without our express written consent. The conclusions and recommendations contained herein are based on conditions observed at the time of inspection and available information.",
+          "style": {
+            "spaceAfter": 24
+          }
+        }
+      ]
+    },
+    {
+      "id": "certification",
+      "type": "section",
+      "title": "PROFESSIONAL ENGINEER CERTIFICATION",
+      "content": [
+        {
+          "type": "text",
+          "content": "I hereby certify that this report was prepared by me or under my direct supervision, and that I am a duly licensed Professional Engineer under the laws of the State.",
+          "style": {
+            "spaceAfter": 36
+          }
+        },
+        {
+          "type": "signature_table",
+          "rows": [
+            ["_______________________________", "_______________________________"],
+            ["{{engineer_name}}, P.E.", "{{technical_reviewer}}, P.E."],
+            ["Principal Engineer", "Technical Reviewer"],
+            ["License No. {{engineer_license}}", "License No. {{reviewer_license}}"],
+            ["Date: _______________", "Date: _______________"]
+          ],
+          "style": {
+            "spaceAfter": 24
+          }
+        }
+      ]
+    },
+    {
+      "id": "appendices",
+      "type": "section",
+      "title": "APPENDICES",
+      "pageBreak": true,
+      "content": [
+        {
+          "type": "text",
+          "content": "Appendix A: Site Photographs\nAppendix B: Weather Data\nAppendix C: Referenced Documentation\nAppendix D: Engineering Calculations (if applicable)",
+          "style": {
+            "spaceAfter": 12
+          }
+        }
+      ]
+    }
+  ],
+  "placeholders": {
+    "file_number": {
+      "source": "projectInformation.fileNumber",
+      "default": "TBD"
+    },
+    "date_of_creation": {
+      "source": "projectInformation.dateOfCreation",
+      "default": "{{current_date}}"
+    },
+    "insured_name": {
+      "source": "projectInformation.insuredName",
+      "default": "TBD"
+    },
+    "insured_address": {
+      "source": "projectInformation.insuredAddress",
+      "default": "TBD"
+    },
+    "date_of_loss": {
+      "source": "projectInformation.dateOfLoss",
+      "default": "TBD"
+    },
+    "claim_number": {
+      "source": "projectInformation.claimNumber",
+      "default": "TBD"
+    },
+    "client_company": {
+      "source": "projectInformation.clientCompany",
+      "default": "TBD"
+    },
+    "client_contact": {
+      "source": "projectInformation.clientContact",
+      "default": "TBD"
+    },
+    "engineer_name": {
+      "source": "projectInformation.engineerName",
+      "default": "TBD"
+    },
+    "technical_reviewer": {
+      "source": "projectInformation.technicalReviewer",
+      "default": "TBD"
+    },
+    "received_date": {
+      "source": "projectInformation.receivedDate",
+      "default": "TBD"
+    },
+    "site_visit_date": {
+      "source": "projectInformation.siteVisitDate",
+      "default": "TBD"
+    },
+    "interviewees_names": {
+      "source": "assignmentScope.intervieweesNames",
+      "default": "None specified"
+    },
+    "provided_documents_titles": {
+      "source": "assignmentScope.providedDocumentsTitles",
+      "default": "None provided"
+    },
+    "structure_built_date": {
+      "source": "buildingObservations.structureBuiltDate",
+      "default": "TBD"
+    },
+    "structure_age": {
+      "source": "buildingObservations.structureAge",
+      "default": "TBD"
+    },
+    "front_facing_direction": {
+      "source": "buildingObservations.frontFacingDirection",
+      "default": "TBD"
+    },
+    "building_system_description": {
+      "source": "buildingObservations.buildingSystemDescription",
+      "default": "Building system description to be determined."
+    },
+    "exterior_observations": {
+      "source": "buildingObservations.exteriorObservations",
+      "default": "Exterior observations to be documented."
+    },
+    "interior_observations": {
+      "source": "buildingObservations.interiorObservations",
+      "default": "Interior observations to be documented."
+    },
+    "other_site_observations": {
+      "source": "buildingObservations.otherSiteObservations",
+      "default": "Additional site observations to be documented."
+    },
+    "weather_data_summary": {
+      "source": "research.weatherDataSummary",
+      "default": "Weather data analysis to be completed."
+    },
+    "corelogic_hail_summary": {
+      "source": "research.corelogicHailSummary",
+      "default": "CoreLogic hail analysis to be completed."
+    },
+    "corelogic_wind_summary": {
+      "source": "research.corelogicWindSummary",
+      "default": "CoreLogic wind analysis to be completed."
+    },
+    "site_discussion_analysis": {
+      "source": "discussionAnalysis.siteDiscussionAnalysis",
+      "default": "Site analysis and discussion to be completed."
+    },
+    "weather_discussion_analysis": {
+      "source": "discussionAnalysis.weatherDiscussionAnalysis",
+      "default": "Weather analysis and discussion to be completed."
+    },
+    "weather_impact_analysis": {
+      "source": "discussionAnalysis.weatherImpactAnalysis",
+      "default": "Weather impact analysis to be completed."
+    },
+    "recommendations_and_discussion": {
+      "source": "discussionAnalysis.recommendationsAndDiscussion",
+      "default": "Recommendations and additional discussion to be completed."
+    },
+    "conclusions": {
+      "source": "conclusions.conclusions",
+      "default": "Conclusions to be determined upon completion of analysis."
+    },
+    "engineer_license": {
+      "source": "projectInformation.engineerLicense",
+      "default": "TBD"
+    },
+    "reviewer_license": {
+      "source": "projectInformation.reviewerLicense",
+      "default": "TBD"
+    },
+    "current_date": {
+      "source": "dynamic",
+      "default": "{{generated_date}}"
+    }
+  }
+}

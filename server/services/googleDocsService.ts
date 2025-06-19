@@ -14,11 +14,52 @@ interface ReportData {
   conclusions: any;
 }
 
+interface TemplateStyle {
+  fontSize?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  alignment?: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED';
+  spaceBefore?: number;
+  spaceAfter?: number;
+  fontFamily?: string;
+}
+
+interface TemplateElement {
+  type: string;
+  content?: string;
+  title?: string;
+  items?: string[];
+  rows?: string[][];
+  style?: TemplateStyle;
+  pageBreak?: boolean;
+}
+
+interface TemplateSection {
+  id: string;
+  type: string;
+  title?: string;
+  content: TemplateElement[];
+  pageBreak?: boolean;
+}
+
+interface ReportTemplate {
+  documentSettings: {
+    title: string;
+    margins: { top: number; bottom: number; left: number; right: number };
+    defaultFont: { family: string; size: number };
+  };
+  sections: TemplateSection[];
+  placeholders: { [key: string]: { source: string; default: string } };
+}
+
 class GoogleDocsService {
   private credentials: any = null;
+  private template: ReportTemplate | null = null;
 
   constructor() {
     this.loadCredentials();
+    this.loadTemplate();
   }
 
   private async loadCredentials() {
@@ -36,23 +77,31 @@ class GoogleDocsService {
     }
   }
 
+  private async loadTemplate() {
+    try {
+      const templatePath = path.join(process.cwd(), 'server/config/efi-report-template.json');
+      
+      if (!fs.existsSync(templatePath)) {
+        console.error('EFI report template file not found');
+        return;
+      }
+
+      this.template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+      console.log('✅ EFI report template loaded successfully');
+    } catch (error) {
+      console.error('Failed to load EFI report template:', error);
+    }
+  }
+
   private async createUserAuth(userId: string): Promise<{ auth: OAuth2Client; docs: any; drive: any } | null> {
-    console.log('DEBUG: Creating user auth for user ID:', userId);
-    
     if (!this.credentials) {
-      console.error('DEBUG: Google credentials not loaded');
       throw new Error('Google credentials not loaded');
     }
 
     // Get user with tokens
-    console.log('DEBUG: Fetching user tokens from database...');
     const user = await storage.getUserWithTokens(userId);
-    console.log('DEBUG: User found:', !!user);
-    console.log('DEBUG: Has access token:', !!user?.googleAccessToken);
-    console.log('DEBUG: Has refresh token:', !!user?.googleRefreshToken);
-    
     if (!user || !user.googleAccessToken) {
-      throw new Error('User not found or missing Google access token. Please re-authenticate with Google.');
+      throw new Error('User not found or missing Google access token');
     }
 
     const auth = new google.auth.OAuth2(
@@ -67,144 +116,68 @@ class GoogleDocsService {
       refresh_token: user.googleRefreshToken,
     });
 
-    console.log('DEBUG: OAuth2 client configured successfully');
-
     const docs = google.docs({ version: 'v1', auth });
     const drive = google.drive({ version: 'v3', auth });
 
     return { auth, docs, drive };
   }
 
-  public async generateFromTemplate(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false, includePhotosInline: boolean = false): Promise<string | null> {
-    // Read template ID from config
-    const templateConfigPath = path.join(process.cwd(), 'server/config/template.json');
-    
-    if (!fs.existsSync(templateConfigPath)) {
-      throw new Error('Template configuration file not found');
+  /**
+   * Creates a professional engineering report using the JSON template
+   */
+  public async createProfessionalReport(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false): Promise<string | null> {
+    if (!this.template) {
+      throw new Error('EFI report template not loaded');
     }
-
-    const templateConfig = JSON.parse(fs.readFileSync(templateConfigPath, 'utf8'));
-    const templateId = templateConfig.templateId;
-    
-    if (!templateId || templateId === 'YOUR_GOOGLE_DOCS_TEMPLATE_ID') {
-      throw new Error('Template ID not configured. Please set templateId in server/config/template.json');
-    }
-
-    return this.fillTemplate(userId, templateId, reportData, reportTitle, aiEnhanceText, includePhotosInline);
-  }
-
-  private async fillTemplate(userId: string, templateId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false, includePhotosInline: boolean = false): Promise<string | null> {
-    console.log('DEBUG: Starting fillTemplate for user:', userId);
-    console.log('DEBUG: Template ID:', templateId);
-    console.log('DEBUG: Report title:', reportTitle);
 
     const userAuth = await this.createUserAuth(userId);
     if (!userAuth) {
       throw new Error('Failed to create user authentication');
     }
 
-    const { auth, docs, drive } = userAuth;
+    const { docs } = userAuth;
 
     try {
-      // Debug: Log the user info and template ID
-      console.log('DEBUG: User authentication successful');
-      
-      // Try to get user info first
-      const userInfo = await auth.getTokenInfo(auth.credentials.access_token);
-      console.log('DEBUG: Authenticated user email:', userInfo.email);
-      
-      // First, check if we can access the template
-      console.log('DEBUG: Checking template access...');
-      try {
-        const templateInfo = await drive.files.get({
-          fileId: templateId,
-          fields: 'id,name,permissions,owners'
-        });
-        console.log('DEBUG: Template info:', templateInfo.data);
-      } catch (templateError: any) {
-        console.error('DEBUG: Error accessing template:', templateError);
-        if (templateError.code === 403) {
-          throw new Error('Template access denied. The template document may not be shared with the application or user.');
-        } else if (templateError.code === 404) {
-          throw new Error('Template document not found. Please check the template ID in server/config/template.json');
-        }
-        throw new Error(`Template access error: ${templateError.message}`);
-      }
-      
-      // Copy the template to create a new document in user's Drive
-      console.log('DEBUG: Copying template...');
-      const copyResponse = await drive.files.copy({
-        fileId: templateId,
+      console.log('DEBUG: Creating document with template:', this.template.documentSettings.title);
+
+      // Create a new document
+      const createResponse = await docs.documents.create({
         requestBody: {
-          name: reportTitle,
-          // The document will be created in the user's Drive root by default
+          title: reportTitle
         }
       });
 
-      const newDocumentId = copyResponse.data.id;
-      console.log('DEBUG: Template copied successfully, new document ID:', newDocumentId);
+      const documentId = createResponse.data.documentId;
       
-      if (!newDocumentId) {
-        throw new Error('Failed to copy template - no document ID returned');
+      if (!documentId) {
+        throw new Error('Failed to create document');
       }
 
-      // Prepare replacement requests for template placeholders
-      const replacements = await this.prepareReplacements(reportData, aiEnhanceText, includePhotosInline);
-      
-      // Create batch update requests to replace placeholders
-      const requests = replacements.map(replacement => ({
-        replaceAllText: {
-          containsText: {
-            text: replacement.placeholder,
-            matchCase: false
-          },
-          replaceText: replacement.value || ''
-        }
-      }));
+      // Process template data and build document
+      const processedData = await this.processTemplateData(reportData, aiEnhanceText);
+      const requests = await this.buildDocumentFromTemplate(processedData);
 
-      // Execute the batch update
-      if (requests.length > 0) {
-        await docs.documents.batchUpdate({
-          documentId: newDocumentId,
-          requestBody: {
-            requests: requests
-          }
-        });
-      }
+      // Execute all formatting requests in batches
+      await this.executeBatchRequests(docs, documentId, requests);
 
-      console.log(`✅ Document created in user's Google Drive: ${reportTitle} (ID: ${newDocumentId})`);
-      return newDocumentId;
+      console.log(`✅ Professional engineering report created: ${documentId}`);
+      return documentId;
 
     } catch (error) {
-      console.error('Error filling template:', error);
+      console.error('Error creating professional report:', error);
       throw error;
     }
   }
 
-  private async prepareReplacements(reportData: ReportData, aiEnhanceText: boolean = false, includePhotosInline: boolean = false): Promise<Array<{placeholder: string, value: string}>> {
-    const replacements = [];
+  /**
+   * Process template data and replace placeholders
+   */
+  private async processTemplateData(reportData: ReportData, aiEnhanceText: boolean): Promise<{ [key: string]: string }> {
+    if (!this.template) {
+      throw new Error('Template not loaded');
+    }
 
-    // Helper function to format photo references
-    const formatPhotoReferences = (files: any[], sectionTitle: string): string => {
-      if (!files || files.length === 0) {
-        return '';
-      }
-
-      if (includePhotosInline) {
-        // For inline photos, we'll add placeholder text that indicates where photos should be inserted
-        // Note: Actual photo insertion would require Google Docs API image insertion capabilities
-        return files.map((file, index) => 
-          `[Photo ${index + 1}: ${file.name || `${sectionTitle}_${index + 1}`}] - Photo will be inserted here`
-        ).join('\n\n');
-      } else {
-        // For referenced photos, just list the filenames
-        const photoList = files.map((file, index) => 
-          `• Photo ${index + 1}: ${file.name || `${sectionTitle}_${index + 1}`}`
-        ).join('\n');
-        
-        return photoList ? `\n\nPhotographs Referenced:\n${photoList}` : '';
-      }
-    };
+    const processedData: { [key: string]: string } = {};
 
     // Helper function to process text and generate paragraphs from bullet points if needed
     const processText = async (text: string | undefined, fieldType: string): Promise<string> => {
@@ -234,90 +207,248 @@ class GoogleDocsService {
       return text;
     };
 
-    // Project Information replacements
-    if (reportData.projectInformation) {
-      const pi = reportData.projectInformation;
-      replacements.push(
-        { placeholder: '{{file_number}}', value: pi.fileNumber || '' },
-        { placeholder: '{{date_of_creation}}', value: pi.dateOfCreation || '' },
-        { placeholder: '{{insured_name}}', value: pi.insuredName || '' },
-        { placeholder: '{{insured_address}}', value: pi.insuredAddress || '' },
-        { placeholder: '{{date_of_loss}}', value: pi.dateOfLoss || '' },
-        { placeholder: '{{claim_number}}', value: pi.claimNumber || '' },
-        { placeholder: '{{client_company}}', value: pi.clientCompany || '' },
-        { placeholder: '{{client_contact}}', value: pi.clientContact || '' },
-        { placeholder: '{{engineer_name}}', value: pi.engineerName || '' },
-        { placeholder: '{{technical_reviewer}}', value: pi.technicalReviewer || '' },
-        { placeholder: '{{received_date}}', value: pi.receivedDate || '' },
-        { placeholder: '{{site_visit_date}}', value: pi.siteVisitDate || '' }
-      );
+    // Process each placeholder
+    for (const [placeholderKey, placeholderConfig] of Object.entries(this.template.placeholders)) {
+      let value = placeholderConfig.default;
+
+      if (placeholderConfig.source === 'dynamic') {
+        // Handle dynamic values
+        if (placeholderKey === 'current_date' || placeholderConfig.default === '{{generated_date}}') {
+          value = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        }
+      } else {
+        // Extract value from report data using dot notation
+        const sourcePath = placeholderConfig.source.split('.');
+        let sourceValue = reportData as any;
+        
+        for (const pathSegment of sourcePath) {
+          sourceValue = sourceValue?.[pathSegment];
+        }
+
+        if (sourceValue && typeof sourceValue === 'string' && sourceValue.trim()) {
+          // Process text through AI if needed
+          value = await processText(sourceValue, placeholderKey);
+        }
+      }
+
+      processedData[placeholderKey] = value || placeholderConfig.default;
     }
 
-    // Assignment Scope (Methodology) replacements
-    if (reportData.assignmentScope) {
-      const as = reportData.assignmentScope;
-      replacements.push(
-        { placeholder: '{{interviewees_names}}', value: await processText(as.intervieweesNames, 'intervieweesNames') },
-        { placeholder: '{{provided_documents_titles}}', value: await processText(as.providedDocumentsTitles, 'providedDocumentsTitles') }
-      );
+    return processedData;
+  }
 
-      // Add photo placeholders for Assignment Scope section
-      replacements.push(
-        { placeholder: '{{document_files}}', value: formatPhotoReferences(as.documentFiles || [], 'Document Review Files') }
-      );
+  /**
+   * Build document requests from template
+   */
+  private async buildDocumentFromTemplate(processedData: { [key: string]: string }): Promise<any[]> {
+    if (!this.template) {
+      throw new Error('Template not loaded');
     }
 
-    // Building & Site Observations replacements
-    if (reportData.buildingObservations) {
-      const bs = reportData.buildingObservations;
-      replacements.push(
-        { placeholder: '{{structure_built_date}}', value: bs.structureBuiltDate || '' },
-        { placeholder: '{{structure_age}}', value: bs.structureAge || '' },
-        { placeholder: '{{building_system_description}}', value: await processText(bs.buildingSystemDescription, 'buildingSystemDescription') },
-        { placeholder: '{{front_facing_direction}}', value: bs.frontFacingDirection || '' },
-        { placeholder: '{{exterior_observations}}', value: await processText(bs.exteriorObservations, 'exteriorObservations') },
-        { placeholder: '{{interior_observations}}', value: await processText(bs.interiorObservations, 'interiorObservations') },
-        { placeholder: '{{other_site_observations}}', value: await processText(bs.otherSiteObservations, 'otherSiteObservations') }
-      );
+    const requests: any[] = [];
+    let currentIndex = 1;
 
-      // Add photo placeholders for Building & Site section
-      replacements.push(
-        { placeholder: '{{building_photos}}', value: formatPhotoReferences(bs.buildingPhotos || [], 'Building Documentation') },
-        { placeholder: '{{exterior_photos}}', value: formatPhotoReferences(bs.exteriorPhotos || [], 'Exterior Photos') },
-        { placeholder: '{{interior_photos}}', value: formatPhotoReferences(bs.interiorPhotos || [], 'Interior Photos') },
-        { placeholder: '{{site_documents}}', value: formatPhotoReferences(bs.siteDocuments || [], 'Site Documents') }
-      );
+    // Helper function to insert text with formatting
+    const insertText = (text: string, style?: TemplateStyle) => {
+      // Replace placeholders in text
+      let processedText = text;
+      for (const [key, value] of Object.entries(processedData)) {
+        processedText = processedText.replace(new RegExp(`{{${key}}}`, 'g'), value);
+      }
+
+      requests.push({
+        insertText: {
+          location: { index: currentIndex },
+          text: processedText
+        }
+      });
+
+      // Apply formatting if specified
+      if (style && processedText.length > 0) {
+        const endIndex = currentIndex + processedText.length;
+
+        // Text style
+        if (style.bold || style.italic || style.underline || style.fontSize || style.fontFamily) {
+          requests.push({
+            updateTextStyle: {
+              range: { startIndex: currentIndex, endIndex: endIndex },
+              textStyle: {
+                bold: style.bold,
+                italic: style.italic,
+                underline: style.underline,
+                fontSize: style.fontSize ? { magnitude: style.fontSize, unit: 'PT' } : undefined,
+                weightedFontFamily: style.fontFamily ? { fontFamily: style.fontFamily } : undefined
+              },
+              fields: 'bold,italic,underline,fontSize,weightedFontFamily'
+            }
+          });
+        }
+
+        // Paragraph style
+        if (style.alignment || style.spaceBefore || style.spaceAfter) {
+          requests.push({
+            updateParagraphStyle: {
+              range: { startIndex: currentIndex, endIndex: endIndex },
+              paragraphStyle: {
+                alignment: style.alignment,
+                spaceAbove: style.spaceBefore ? { magnitude: style.spaceBefore, unit: 'PT' } : undefined,
+                spaceBelow: style.spaceAfter ? { magnitude: style.spaceAfter, unit: 'PT' } : undefined
+              },
+              fields: 'alignment,spaceAbove,spaceBelow'
+            }
+          });
+        }
+      }
+
+      currentIndex += processedText.length;
+    };
+
+    // Helper function to insert page break
+    const insertPageBreak = () => {
+      requests.push({
+        insertPageBreak: {
+          location: { index: currentIndex }
+        }
+      });
+      currentIndex += 1;
+    };
+
+    // Helper function to create table
+    const insertTable = (rows: string[][], style?: TemplateStyle) => {
+      requests.push({
+        insertTable: {
+          location: { index: currentIndex },
+          rows: rows.length,
+          columns: rows[0]?.length || 2
+        }
+      });
+
+      // Insert table content
+      let tableIndex = currentIndex + 3; // Tables start after initial structure
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        for (let colIndex = 0; colIndex < rows[rowIndex].length; colIndex++) {
+          let cellText = rows[rowIndex][colIndex];
+          
+          // Replace placeholders in cell text
+          for (const [key, value] of Object.entries(processedData)) {
+            cellText = cellText.replace(new RegExp(`{{${key}}}`, 'g'), value);
+          }
+
+          requests.push({
+            insertText: {
+              location: { index: tableIndex },
+              text: cellText
+            }
+          });
+
+          tableIndex += cellText.length + 2; // Account for cell separators
+        }
+      }
+
+      currentIndex = tableIndex;
+
+      if (style?.spaceAfter) {
+        insertText('\n'.repeat(Math.ceil(style.spaceAfter / 12)));
+      }
+    };
+
+    // Process each section
+    for (const section of this.template.sections) {
+      // Add page break if specified
+      if (section.pageBreak) {
+        insertPageBreak();
+      }
+
+      // Add section title
+      if (section.title) {
+        insertText(section.title + '\n', {
+          fontSize: 14,
+          bold: true,
+          alignment: 'LEFT',
+          spaceAfter: 12
+        });
+      }
+
+      // Process section content
+      for (const element of section.content) {
+        switch (element.type) {
+          case 'text':
+            if (element.content) {
+              insertText(element.content + '\n', element.style);
+            }
+            break;
+
+          case 'list':
+            if (element.items) {
+              for (const item of element.items) {
+                insertText('• ' + item + '\n', element.style);
+              }
+            }
+            break;
+
+          case 'table':
+          case 'signature_table':
+            if (element.rows) {
+              insertTable(element.rows, element.style);
+            }
+            break;
+
+          case 'subsection':
+            if (element.title) {
+              insertText(element.title + '\n', {
+                fontSize: 12,
+                bold: true,
+                spaceAfter: 6
+              });
+            }
+            if (element.content) {
+              // Process subsection content recursively
+              for (const subElement of element.content as TemplateElement[]) {
+                if (subElement.type === 'text' && subElement.content) {
+                  insertText(subElement.content + '\n', subElement.style);
+                }
+              }
+            }
+            break;
+        }
+      }
     }
 
-    // Research replacements
-    if (reportData.research) {
-      const r = reportData.research;
-      replacements.push(
-        { placeholder: '{{weather_data_summary}}', value: await processText(r.weatherDataSummary, 'weatherDataSummary') },
-        { placeholder: '{{corelogic_hail_summary}}', value: await processText(r.corelogicHailSummary, 'corelogicHailSummary') },
-        { placeholder: '{{corelogic_wind_summary}}', value: await processText(r.corelogicWindSummary, 'corelogicWindSummary') }
-      );
-    }
+    return requests;
+  }
 
-    // Discussion & Analysis replacements
-    if (reportData.discussionAnalysis) {
-      const da = reportData.discussionAnalysis;
-      replacements.push(
-        { placeholder: '{{site_discussion_analysis}}', value: await processText(da.siteDiscussionAnalysis, 'siteDiscussionAnalysis') },
-        { placeholder: '{{weather_discussion_analysis}}', value: await processText(da.weatherDiscussionAnalysis, 'weatherDiscussionAnalysis') },
-        { placeholder: '{{weather_impact_analysis}}', value: await processText(da.weatherImpactAnalysis, 'weatherImpactAnalysis') },
-        { placeholder: '{{recommendations_and_discussion}}', value: await processText(da.recommendationsAndDiscussion, 'recommendationsAndDiscussion') }
-      );
+  /**
+   * Execute batch requests efficiently
+   */
+  private async executeBatchRequests(docs: any, documentId: string, requests: any[]): Promise<void> {
+    const batchSize = 100; // Google Docs API batch limit
+    
+    for (let i = 0; i < requests.length; i += batchSize) {
+      const batch = requests.slice(i, i + batchSize);
+      
+      try {
+        await docs.documents.batchUpdate({
+          documentId: documentId,
+          requestBody: {
+            requests: batch
+          }
+        });
+      } catch (error) {
+        console.error(`Error executing batch ${i / batchSize + 1}:`, error);
+        throw error;
+      }
     }
+  }
 
-    // Conclusions replacements
-    if (reportData.conclusions) {
-      replacements.push(
-        { placeholder: '{{conclusions}}', value: await processText(reportData.conclusions.conclusions, 'conclusions') }
-      );
-    }
-
-    return replacements;
+  /**
+   * Legacy method for backward compatibility
+   */
+  public async generateFromTemplate(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false): Promise<string | null> {
+    return this.createProfessionalReport(userId, reportData, reportTitle, aiEnhanceText);
   }
 
   public async isUserAuthenticated(userId: string): Promise<boolean> {
@@ -327,6 +458,36 @@ class GoogleDocsService {
     } catch (error) {
       return false;
     }
+  }
+
+  public getAuthUrl(): string {
+    if (!this.credentials) {
+      throw new Error('Google credentials not loaded');
+    }
+
+    const auth = new google.auth.OAuth2(
+      this.credentials.web.client_id,
+      this.credentials.web.client_secret,
+      this.credentials.web.redirect_uris[0]
+    );
+
+    return auth.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/documents',
+        'https://www.googleapis.com/auth/drive.file'
+      ]
+    });
+  }
+
+  public async setAuthTokens(code: string): Promise<void> {
+    throw new Error('OAuth callback flow not properly implemented. Use passport-based authentication instead.');
+  }
+
+  public async isAuthenticated(): Promise<boolean> {
+    throw new Error('Global authentication check not supported. Use isUserAuthenticated(userId) instead.');
   }
 }
 
