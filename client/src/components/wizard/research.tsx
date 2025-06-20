@@ -116,7 +116,7 @@ export const ResearchStep = forwardRef<StepRef<Research>, ResearchProps>(({
         return;
       }
       
-      console.log("Project Info found:", projectInfo);
+      // Project information found, proceeding with NOAA fetch
 
       const { latitude, longitude, dateOfLoss, city, state, insuredAddress } = projectInfo;
       
@@ -178,7 +178,7 @@ export const ResearchStep = forwardRef<StepRef<Research>, ResearchProps>(({
       }
 
       const responseText = await response.text();
-      console.log("Raw response:", responseText);
+      // Processing NOAA API response
       
       // Check if the response is HTML (indicating a redirect to login page)
       if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
@@ -192,7 +192,7 @@ export const ResearchStep = forwardRef<StepRef<Research>, ResearchProps>(({
         console.error("Failed to parse response as JSON:", responseText);
         throw new Error("Invalid response format from server");
       }
-      console.log("Storm data received:", stormData);
+      // Storm data successfully parsed
 
       // Update form fields with the fetched data
       if (stormData && stormData.summary) {
