@@ -1,154 +1,90 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { calculationsSchema, type Calculations } from "@shared/schema";
+import { researchSchema, type Research } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useEffect, forwardRef, useImperativeHandle } from "react";
 import type { StepRef } from "@/lib/types";
-import type { UseFormReturn } from "react-hook-form";
 
 interface CalculationsProps {
-  initialData?: Partial<Calculations>;
-  onSubmit: (data: Calculations) => void;
+  initialData?: Partial<Research>;
+  onSubmit: (data: Research) => void;
   onPrevious?: () => void;
   reportId?: string | null;
 }
 
-export const CalculationsStep = forwardRef<StepRef<Calculations>, CalculationsProps>(({ 
+export const CalculationsStep = forwardRef<StepRef<Research>, CalculationsProps>(({ 
   initialData, 
   onSubmit, 
   onPrevious,
   reportId 
 }, ref) => {
-  const form: UseFormReturn<Calculations> = useForm<Calculations>({
-    resolver: zodResolver(calculationsSchema),
+  const form = useForm<Research>({
+    resolver: zodResolver(researchSchema),
     defaultValues: {
-      calculationType: [],
-      loadCalculations: "",
-      structuralAnalysis: "",
-      safetyFactors: undefined,
-      codeCompliance: "",
+      weatherDataSummary: "",
+      corelogicHailSummary: "",
+      corelogicWindSummary: "",
       ...initialData,
     },
   });
 
+  const { control, handleSubmit, reset, trigger, getValues } = form;
+
   // Expose save method to parent
   useImperativeHandle(ref, () => ({
     save: async () => {
-      const isValid = await form.trigger();
+      const isValid = await trigger();
       if (isValid) {
-        const values = form.getValues();
+        const values = getValues();
         onSubmit(values);
       }
     },
-    getValues: () => form.getValues(),
+    getValues: () => getValues(),
   }));
 
-  // Auto-save form data as user types
   const { isSaving } = useAutoSave(reportId, 4, form.watch());
 
   // Reset form when initialData changes
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
-      form.reset({
-        calculationType: [],
-        loadCalculations: "",
-        structuralAnalysis: "",
-        safetyFactors: undefined,
-        codeCompliance: "",
+      reset({
+        weatherDataSummary: "",
+        corelogicHailSummary: "",
+        corelogicWindSummary: "",
         ...initialData,
       });
     }
-  }, [initialData, form]);
-
-  const calculationTypes = [
-    "Load calculations",
-    "Structural analysis",
-    "Foundation design",
-    "Seismic analysis",
-    "Wind load analysis",
-    "Thermal analysis",
-    "Fatigue analysis",
-    "Connection design"
-  ];
+  }, [initialData, reset]);
 
   return (
     <div className="space-y-8">
       <Form {...form}>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          // Allow navigation without validation - just submit current form data
-          const formData = form.getValues();
-          onSubmit(formData);
-        }} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           
-          {/* Calculation Types */}
+          {/* Weather Data Summary */}
           <FormField
-            control={form.control}
-            name="calculationType"
-            render={() => (
-              <FormItem>
-                <FormLabel className="text-base font-semibold text-slate-900">
-                  Required Calculations <span className="text-red-500">*</span>
-                </FormLabel>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-3">
-                  {calculationTypes.map((type) => (
-                    <FormField
-                      key={type}
-                      control={form.control}
-                      name="calculationType"
-                      render={({ field }) => {
-                        return (
-                          <FormItem
-                            key={type}
-                            className="flex flex-row items-start space-x-3 space-y-0"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(type)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, type])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== type
-                                        )
-                                      )
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="text-sm font-normal cursor-pointer">
-                              {type}
-                            </FormLabel>
-                          </FormItem>
-                        )
-                      }}
-                    />
-                  ))}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Load Calculations */}
-          <FormField
-            control={form.control}
-            name="loadCalculations"
+            control={control}
+            name="weatherDataSummary"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-base font-semibold text-slate-900">
-                  Load Calculations Summary
+                  NOAA's Storm Prediction Center Records <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
                   <Textarea
                     {...field}
-                    placeholder="Summarize the load calculations performed, including dead loads, live loads, wind loads, seismic loads, etc..."
-                    rows={4}
+                    placeholder="NOAA's Storm Prediction Center records reported [complete this section]:
+• Date and time of weather events
+• Storm severity and classification
+• Wind speeds recorded
+• Hail reports and sizes
+• Precipitation amounts
+• Storm path and duration
+• Damage reports from the area..."
+                    rows={6}
                     className="px-4 py-3"
                   />
                 </FormControl>
@@ -157,20 +93,27 @@ export const CalculationsStep = forwardRef<StepRef<Calculations>, CalculationsPr
             )}
           />
 
-          {/* Structural Analysis */}
+          {/* CoreLogic Hail Summary */}
           <FormField
-            control={form.control}
-            name="structuralAnalysis"
+            control={control}
+            name="corelogicHailSummary"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-base font-semibold text-slate-900">
-                  Structural Analysis Method
+                  CoreLogic's Hail Verification Report <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
                   <Textarea
                     {...field}
-                    placeholder="Describe the structural analysis methods used (e.g., finite element analysis, manual calculations, software used)..."
-                    rows={4}
+                    placeholder="CoreLogic's Hail Verification Report [complete this section]:
+• Hail event dates and times
+• Hail sizes reported
+• Probability of hail at the subject property
+• Distance from hail swath center
+• Intensity and duration of hail
+• Comparison with surrounding areas
+• Historical hail data for the location..."
+                    rows={6}
                     className="px-4 py-3"
                   />
                 </FormControl>
@@ -179,44 +122,27 @@ export const CalculationsStep = forwardRef<StepRef<Calculations>, CalculationsPr
             )}
           />
 
-          {/* Safety Factors */}
+          {/* CoreLogic Wind Summary */}
           <FormField
-            control={form.control}
-            name="safetyFactors"
+            control={control}
+            name="corelogicWindSummary"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-base font-semibold text-slate-900">
-                  Applied Safety Factor
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="number"
-                    step="0.1"
-                    placeholder="2.0"
-                    className="px-4 py-3"
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Code Compliance */}
-          <FormField
-            control={form.control}
-            name="codeCompliance"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-semibold text-slate-900">
-                  Code Compliance Notes
+                  CoreLogic's Wind Verification Report <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
                   <Textarea
                     {...field}
-                    placeholder="Document how the calculations comply with applicable building codes and standards..."
-                    rows={4}
+                    placeholder="CoreLogic's Wind Verification Report indicates [complete this section]:
+• Wind event dates and times
+• Maximum wind speeds recorded
+• Wind direction and patterns
+• Duration of high wind conditions
+• Probability of damaging winds at the subject property
+• Comparison with design wind speeds
+• Historical wind data for the location..."
+                    rows={6}
                     className="px-4 py-3"
                   />
                 </FormControl>
@@ -225,26 +151,23 @@ export const CalculationsStep = forwardRef<StepRef<Calculations>, CalculationsPr
             )}
           />
 
-          {/* Form Actions */}
           <div className="flex justify-between items-center pt-6">
-            {onPrevious && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onPrevious}
-                className="flex items-center px-6 py-3"
-              >
-                <i className="fas fa-chevron-left mr-2"></i>
-                Previous: Design Specifications
-              </Button>
-            )}
-            
             <Button
+              type="button"
+              variant="outline"
+              onClick={onPrevious}
+              className="flex items-center px-6 py-3"
+            >
+              <i className="fas fa-chevron-left mr-2"></i>
+              Previous: Building Analysis
+            </Button>
+            
+            <Button 
               type="submit"
               className="flex items-center px-8 py-3 bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
               disabled={isSaving}
             >
-              {isSaving ? "Saving..." : "Next: Review & Attachments"}
+              {isSaving ? "Saving..." : "Next: Discussion & Analysis"}
               <i className="fas fa-chevron-right ml-2"></i>
             </Button>
           </div>

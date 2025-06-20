@@ -134,14 +134,14 @@ export function ImageUpload({
       onImagesChange(
         images.map(img => 
           img.id === tempId 
-            ? { ...img, uploading: false, error: error.message }
+            ? { ...img, uploading: false, error: error instanceof Error ? error.message : 'Upload failed' }
             : img
         )
       );
 
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Upload failed',
         variant: "destructive",
       });
     } finally {
@@ -241,7 +241,7 @@ export function ImageUpload({
       console.error('Delete error:', error);
       toast({
         title: "Delete failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Delete failed',
         variant: "destructive",
       });
     }
@@ -286,7 +286,7 @@ export function ImageUpload({
       console.error('Update error:', error);
       toast({
         title: "Update failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Update failed',
         variant: "destructive",
       });
     }

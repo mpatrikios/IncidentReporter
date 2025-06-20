@@ -37,7 +37,7 @@ router.post('/api/reports/:reportId/images', requireAuth, upload.single('image')
   try {
     const { reportId } = req.params;
     const imageFile = req.file;
-    const userId = req.user._id.toString();
+    const userId = ((req.user as any) as any)._id.toString();
 
     if (!imageFile) {
       return res.status(400).json({ error: 'No image file provided' });
@@ -63,8 +63,8 @@ router.post('/api/reports/:reportId/images', requireAuth, upload.single('image')
     const report = await Report.findOne({ 
       _id: reportId,
       $or: [
-        { userId: req.user._id },
-        { assignedEngineer: req.user._id }
+        { userId: (req.user as any)._id },
+        { assignedEngineer: (req.user as any)._id }
       ]
     });
 
@@ -97,7 +97,7 @@ router.post('/api/reports/:reportId/images', requireAuth, upload.single('image')
     });
 
     res.json({
-      id: imageRecord._id.toString(),
+      id: (imageRecord._id as any).toString(),
       reportId: imageRecord.reportId.toString(),
       stepNumber: imageRecord.stepNumber,
       filename: imageRecord.filename,
@@ -115,7 +115,7 @@ router.post('/api/reports/:reportId/images', requireAuth, upload.single('image')
     });
   } catch (error) {
     console.error('Image upload error:', error);
-    res.status(500).json({ error: 'Image upload failed', details: error.message });
+    res.status(500).json({ error: 'Image upload failed', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
@@ -128,8 +128,8 @@ router.get('/api/reports/:reportId/images', requireAuth, async (req, res) => {
     const report = await Report.findOne({ 
       _id: reportId,
       $or: [
-        { userId: req.user._id },
-        { assignedEngineer: req.user._id }
+        { userId: (req.user as any)._id },
+        { assignedEngineer: (req.user as any)._id }
       ]
     });
 
@@ -142,7 +142,7 @@ router.get('/api/reports/:reportId/images', requireAuth, async (req, res) => {
       .sort({ uploadOrder: 1 });
 
     const imageResponses = images.map(img => ({
-      id: img._id.toString(),
+      id: (img._id as any).toString(),
       reportId: img.reportId.toString(),
       stepNumber: img.stepNumber,
       filename: img.filename,
@@ -170,14 +170,14 @@ router.get('/api/reports/:reportId/images', requireAuth, async (req, res) => {
 router.delete('/api/reports/:reportId/images/:imageId', requireAuth, async (req, res) => {
   try {
     const { reportId, imageId } = req.params;
-    const userId = req.user._id.toString();
+    const userId = ((req.user as any) as any)._id.toString();
 
     // Check if user has access to report
     const report = await Report.findOne({ 
       _id: reportId,
       $or: [
-        { userId: req.user._id },
-        { assignedEngineer: req.user._id }
+        { userId: (req.user as any)._id },
+        { assignedEngineer: (req.user as any)._id }
       ]
     });
 
@@ -220,8 +220,8 @@ router.patch('/api/reports/:reportId/images/:imageId', requireAuth, async (req, 
     const report = await Report.findOne({ 
       _id: reportId,
       $or: [
-        { userId: req.user._id },
-        { assignedEngineer: req.user._id }
+        { userId: (req.user as any)._id },
+        { assignedEngineer: (req.user as any)._id }
       ]
     });
 
@@ -245,7 +245,7 @@ router.patch('/api/reports/:reportId/images/:imageId', requireAuth, async (req, 
     }
 
     res.json({
-      id: image._id.toString(),
+      id: (image._id as any).toString(),
       reportId: image.reportId.toString(),
       stepNumber: image.stepNumber,
       filename: image.filename,

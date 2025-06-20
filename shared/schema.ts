@@ -293,6 +293,26 @@ export type CreateFormStep = z.infer<typeof createFormStepSchema>;
 export type UploadImage = z.infer<typeof uploadImageSchema>;
 export type ImageResponse = z.infer<typeof imageResponseSchema>;
 
+// Main entity types
+export type User = IUser;
+export type Report = IReport;
+export type FormStep = IFormStep;
+export type ReportImage = IReportImage;
+
+// Upload and service types
+export interface UploadedImage {
+  id?: string;
+  originalFilename: string;
+  filename?: string;
+  s3Url?: string;
+  publicUrl?: string;
+  fileSize: number;
+  mimeType?: string;
+  description?: string;
+  uploading?: boolean;
+  error?: string;
+}
+
 export type ProjectInformation = z.infer<typeof projectInformationSchema>;
 export type AssignmentScope = z.infer<typeof assignmentScopeSchema>;
 export type BuildingAndSite = z.infer<typeof buildingAndSiteSchema>;

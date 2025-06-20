@@ -24,6 +24,23 @@ import { useAutoSave } from "@/hooks/use-auto-save";
 import { ImageUpload } from "@/components/ImageUpload";
 import type { StepRef } from "@/lib/types";
 
+interface UploadedImage {
+  id: string;
+  filename: string;
+  originalFilename: string;
+  fileSize: number;
+  mimeType: string;
+  s3Key?: string;
+  s3Url?: string;
+  publicUrl?: string;
+  description?: string;
+  category?: string;
+  preview?: string;
+  uploadProgress?: number;
+  uploading?: boolean;
+  error?: string;
+}
+
 interface BuildingAndSiteProps {
   initialData?: Partial<BuildingAndSite>;
   onSubmit?: (data: BuildingAndSite) => void;
@@ -32,10 +49,10 @@ interface BuildingAndSiteProps {
 
 export const BuildingAndSiteStepTurboTax = forwardRef<StepRef<BuildingAndSite>, BuildingAndSiteProps>(
   ({ initialData, onSubmit = () => {}, reportId }, ref) => {
-    const [buildingImages, setBuildingImages] = useState([]);
-    const [exteriorImages, setExteriorImages] = useState([]);
-    const [interiorImages, setInteriorImages] = useState([]);
-    const [documentImages, setDocumentImages] = useState([]);
+    const [buildingImages, setBuildingImages] = useState<UploadedImage[]>([]);
+    const [exteriorImages, setExteriorImages] = useState<UploadedImage[]>([]);
+    const [interiorImages, setInteriorImages] = useState<UploadedImage[]>([]);
+    const [documentImages, setDocumentImages] = useState<UploadedImage[]>([]);
 
     const form = useForm<BuildingAndSite>({
       resolver: zodResolver(buildingAndSiteSchema),

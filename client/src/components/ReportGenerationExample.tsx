@@ -4,11 +4,27 @@ import { ImageUpload } from './ImageUpload';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+interface UploadedImage {
+  id: string;
+  filename: string;
+  originalFilename: string;
+  fileSize: number;
+  mimeType: string;
+  s3Key?: string;
+  s3Url?: string;
+  publicUrl?: string;
+  description?: string;
+  category?: string;
+  preview?: string;
+  uploadProgress?: number;
+  uploading?: boolean;
+  error?: string;
+}
 
 // Example component showing how to integrate document generation with image upload
 export function ReportGenerationExample() {
   const [reportId] = useState('example-report-id');
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState<UploadedImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 

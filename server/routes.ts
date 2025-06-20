@@ -494,7 +494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const report = await storage.updateReport(reportId, {
         status: "in_review",
         formData: formData,
-        assignedEngineer: 1, // Assign to sample engineer
+        assignedEngineer: new mongoose.Types.ObjectId(), // Assign to sample engineer
       });
 
       if (!report) {

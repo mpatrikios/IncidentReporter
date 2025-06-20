@@ -63,7 +63,9 @@ export function DocumentGeneration({
       if (canGenerateClientSide) {
         // Client-side generation
         await wordDocumentService.generateDocument({
-          ...reportData,
+          title: reportData.title,
+          reportData,
+          images: reportData.images,
           includePhotosInline,
           onProgress: (progress, message) => {
             setProgress(progress);
@@ -81,10 +83,11 @@ export function DocumentGeneration({
       }
     } catch (error) {
       console.error('Word generation error:', error);
-      setError(error.message || 'Failed to generate Word document');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate Word document';
+      setError(errorMessage);
       
       // Try server-side as fallback
-      if (error.message?.includes('50MB limit')) {
+      if (errorMessage.includes('50MB limit')) {
         try {
           await generateWordDocumentServerSide();
         } catch (serverError) {
