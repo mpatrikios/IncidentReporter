@@ -57,7 +57,7 @@ import type { Report } from "@shared/schema";
 
 // TurboTax-style Step Components
 import { ProjectInformationStepTurboTax } from "@/components/wizard/project-information-turbotax";
-import { AssignmentScopeStepMUI } from "@/components/wizard/assignment-scope-mui";
+import { AssignmentScopeStep } from "@/components/wizard/assignment-scope";
 import { BuildingAndSiteStepTurboTax } from "@/components/wizard/building-and-site-turbotax";
 import { ResearchStepTurboTax } from "@/components/wizard/research-turbotax";
 import { DiscussionAndAnalysisStepTurboTax } from "@/components/wizard/discussion-and-analysis-turbotax";
@@ -413,7 +413,7 @@ export default function ReportWizardTurboTax() {
       case 1:
         return <ProjectInformationStepTurboTax {...stepProps} ref={stepRef} />;
       case 2:
-        return <AssignmentScopeStepMUI {...stepProps} ref={stepRef} />;
+        return <AssignmentScopeStep {...stepProps} ref={stepRef} />;
       case 3:
         return <BuildingAndSiteStepTurboTax {...stepProps} ref={stepRef} />;
       case 4:
@@ -632,14 +632,31 @@ export default function ReportWizardTurboTax() {
                 
                 <Stack spacing={2}>
                   {completedSections.map((section, index) => (
-                    <Stack key={index} direction="row" alignItems="center" spacing={2}>
+                    <Stack 
+                      key={index} 
+                      direction="row" 
+                      alignItems="center" 
+                      spacing={2}
+                      onClick={() => setCurrentStep(index + 1)}
+                      sx={{
+                        cursor: 'pointer',
+                        borderRadius: 1,
+                        p: 1,
+                        ml: -1,
+                        mr: -1,
+                        '&:hover': {
+                          backgroundColor: '#F5F5F5',
+                        },
+                        transition: 'background-color 0.2s ease',
+                      }}
+                    >
                       <Box
                         sx={{
                           width: 20,
                           height: 20,
                           borderRadius: '50%',
-                          backgroundColor: section.completed ? '#00AA3B' : '#E8EAED',
-                          color: section.completed ? '#FFFFFF' : '#6B778C',
+                          backgroundColor: section.completed ? '#00AA3B' : currentStep === index + 1 ? '#0070BA' : '#E8EAED',
+                          color: section.completed || currentStep === index + 1 ? '#FFFFFF' : '#6B778C',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -652,8 +669,8 @@ export default function ReportWizardTurboTax() {
                       <Typography 
                         variant="body2" 
                         sx={{ 
-                          color: section.completed ? '#00AA3B' : '#6B778C',
-                          fontWeight: section.completed ? 500 : 400,
+                          color: section.completed ? '#00AA3B' : currentStep === index + 1 ? '#0070BA' : '#6B778C',
+                          fontWeight: section.completed || currentStep === index + 1 ? 600 : 400,
                         }}
                       >
                         {section.name}

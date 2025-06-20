@@ -29,21 +29,23 @@ export const ProjectInformationStepTurboTax = forwardRef<StepRef<ProjectInformat
     const form = useForm<ProjectInformation>({
       resolver: zodResolver(projectInformationSchema),
       defaultValues: {
+        fileNumber: "",
+        dateOfCreation: "",
         insuredName: "",
         insuredAddress: "",
-        insuredCity: "",
-        insuredState: "",
-        insuredZip: "",
-        fileNumber: "",
+        city: "",
+        state: "",
+        zipCode: "",
         claimNumber: "",
         clientCompany: "",
         clientContact: "",
-        clientEmail: "",
-        clientPhone: "",
         dateOfLoss: "",
         siteVisitDate: "",
         engineerName: "",
-        licenseNumber: "",
+        technicalReviewer: "",
+        receivedDate: "",
+        latitude: undefined,
+        longitude: undefined,
         ...initialData,
       },
     });
@@ -66,21 +68,23 @@ export const ProjectInformationStepTurboTax = forwardRef<StepRef<ProjectInformat
     useEffect(() => {
       if (initialData && Object.keys(initialData).length > 0) {
         reset({
+          fileNumber: "",
+          dateOfCreation: "",
           insuredName: "",
           insuredAddress: "",
-          insuredCity: "",
-          insuredState: "",
-          insuredZip: "",
-          fileNumber: "",
+          city: "",
+          state: "",
+          zipCode: "",
           claimNumber: "",
           clientCompany: "",
           clientContact: "",
-          clientEmail: "",
-          clientPhone: "",
           dateOfLoss: "",
           siteVisitDate: "",
           engineerName: "",
-          licenseNumber: "",
+          technicalReviewer: "",
+          receivedDate: "",
+          latitude: undefined,
+          longitude: undefined,
           ...initialData,
         });
       }
@@ -163,7 +167,7 @@ export const ProjectInformationStepTurboTax = forwardRef<StepRef<ProjectInformat
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={5}>
                     <Controller
-                      name="insuredCity"
+                      name="city"
                       control={control}
                       render={({ field, fieldState }) => (
                         <TextField
@@ -181,7 +185,7 @@ export const ProjectInformationStepTurboTax = forwardRef<StepRef<ProjectInformat
 
                   <Grid item xs={6} sm={3}>
                     <Controller
-                      name="insuredState"
+                      name="state"
                       control={control}
                       render={({ field, fieldState }) => (
                         <Autocomplete
@@ -204,7 +208,7 @@ export const ProjectInformationStepTurboTax = forwardRef<StepRef<ProjectInformat
 
                   <Grid item xs={6} sm={4}>
                     <Controller
-                      name="insuredZip"
+                      name="zipCode"
                       control={control}
                       render={({ field, fieldState }) => (
                         <TextField

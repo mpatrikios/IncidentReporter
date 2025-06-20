@@ -28,7 +28,7 @@ export function StepNavigation({
       
       {/* Progress Bar */}
       <div className="mb-8">
-        <div className="flex justify-between text-sm font-medium text-grey-600 mb-3">
+        <div className="flex justify-between text-sm font-medium text-gray-600 mb-3">
           <span>Step {currentStep} of {FORM_STEPS.length}</span>
           <span className="text-primary font-semibold">{Math.round(progress)}% Complete</span>
         </div>
@@ -50,14 +50,19 @@ export function StepNavigation({
           return (
             <button
               key={step.number}
-              onClick={() => isAccessible && onStepClick(step.number)}
+              onClick={() => {
+                console.log('Step clicked:', step.number, 'isAccessible:', isAccessible);
+                if (isAccessible) {
+                  onStepClick(step.number);
+                }
+              }}
               disabled={!isAccessible}
               className={cn(
                 "w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 text-left group border-2",
                 "hover:shadow-md hover:scale-[1.02] cursor-pointer transform",
                 isCompleted && "bg-blue-50 border-blue-300 hover:bg-blue-100 text-blue-800 hover:border-blue-400",
                 isCurrent && !isCompleted && "bg-blue-100 border-blue-400 hover:bg-blue-200 shadow-md text-blue-900 hover:border-blue-500",
-                !isCurrent && !isCompleted && isAccessible && "bg-white border-grey-200 hover:bg-blue-50 hover:border-blue-300 text-grey-700",
+                !isCurrent && !isCompleted && isAccessible && "bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-300 text-gray-700",
                 !isAccessible && "opacity-50 cursor-not-allowed"
               )}
             >
@@ -65,7 +70,7 @@ export function StepNavigation({
                 "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 border-2 group-hover:scale-110",
                 isCompleted && "bg-blue-600 border-blue-700 text-white group-hover:bg-blue-700",
                 isCurrent && !isCompleted && "bg-blue-700 border-blue-800 text-white group-hover:bg-blue-800", 
-                !isCurrent && !isCompleted && "bg-grey-100 border-grey-300 text-grey-600 group-hover:bg-blue-600 group-hover:border-blue-700 group-hover:text-white"
+                !isCurrent && !isCompleted && "bg-gray-100 border-gray-300 text-gray-600 group-hover:bg-blue-600 group-hover:border-blue-700 group-hover:text-white"
               )}>
                 {isCompleted ? (
                   <CheckCircle className="w-5 h-5" />
@@ -85,7 +90,7 @@ export function StepNavigation({
                   "text-xs mt-1 transition-colors",
                   isCompleted && "text-blue-600",
                   isCurrent && !isCompleted && "text-blue-700",
-                  !isCurrent && !isCompleted && "text-grey-600"
+                  !isCurrent && !isCompleted && "text-gray-600"
                 )}>
                   {isCompleted ? "Completed" : isCurrent ? "In Progress" : step.description}
                 </div>
@@ -96,7 +101,7 @@ export function StepNavigation({
       </nav>
 
       {/* Save Indicator */}
-      <div className="mt-8 pt-6 border-t-2 border-grey-200">
+      <div className="mt-8 pt-6 border-t-2 border-gray-200">
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 border-2 border-blue-200">
           <div className="p-1.5 bg-blue-100 rounded-lg border border-blue-300">
             <CheckCircle className="h-4 w-4 text-blue-600" />
