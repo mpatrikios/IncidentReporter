@@ -8,16 +8,34 @@ import {
   Stack,
   Paper,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Alert
 } from '@mui/material';
-import { Engineering, Google } from '@mui/icons-material';
+import { Engineering, Google, Error as ErrorIcon } from '@mui/icons-material';
+import { useEffect, useState } from 'react';
 
 export default function LoginMUI() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check for error parameters in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const message = urlParams.get('message');
+    
+    if (error === 'verification_failed' && message) {
+      setErrorMessage(decodeURIComponent(message));
+    }
+  }, []);
   
   const handleGoogleLogin = () => {
     window.location.href = '/auth/google';
+  };
+
+  const handleMicrosoftLogin = () => {
+    window.location.href = '/auth/microsoft';
   };
 
   return (
@@ -89,9 +107,30 @@ export default function LoginMUI() {
                     Welcome Back
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Sign in with your Google account to access your reports
+                    Sign in with your account to access your reports
                   </Typography>
                 </Box>
+
+                {errorMessage && (
+                  <Alert 
+                    severity="error" 
+                    icon={<ErrorIcon />}
+                    sx={{ 
+                      '& .MuiAlert-message': { 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: 0.5 
+                      } 
+                    }}
+                  >
+                    <Typography variant="body2" fontWeight={600}>
+                      Access Denied
+                    </Typography>
+                    <Typography variant="body2">
+                      {errorMessage}
+                    </Typography>
+                  </Alert>
+                )}
 
                 <Button
                   variant="contained"
@@ -112,6 +151,35 @@ export default function LoginMUI() {
                   aria-label="Continue with Google"
                 >
                   Continue with Google
+                </Button>
+
+                <Button
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  onClick={handleMicrosoftLogin}
+                  startIcon={
+                    <Box 
+                      component="svg" 
+                      viewBox="0 0 24 24" 
+                      sx={{ width: 24, height: 24 }}
+                    >
+                      <path fill="currentColor" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
+                    </Box>
+                  }
+                  sx={{
+                    py: 1.5,
+                    fontSize: '1.125rem',
+                    fontWeight: 500,
+                    backgroundColor: '#212121',
+                    '&:hover': {
+                      backgroundColor: '#424242',
+                      transform: 'translateY(-1px)',
+                    },
+                  }}
+                  aria-label="Continue with Microsoft"
+                >
+                  Continue with Microsoft
                 </Button>
 
                 <Typography 

@@ -6,14 +6,32 @@ import {
   Stack,
   Link,
   useTheme,
+  Alert
 } from '@mui/material';
-import { Google } from '@mui/icons-material';
+import { Google, Error as ErrorIcon } from '@mui/icons-material';
+import { useEffect, useState } from 'react';
 
 export default function LoginTurboTax() {
   const theme = useTheme();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check for error parameters in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const message = urlParams.get('message');
+    
+    if (error === 'verification_failed' && message) {
+      setErrorMessage(decodeURIComponent(message));
+    }
+  }, []);
   
   const handleGoogleLogin = () => {
     window.location.href = '/auth/google';
+  };
+
+  const handleMicrosoftLogin = () => {
+    window.location.href = '/auth/microsoft';
   };
 
   return (
@@ -111,6 +129,28 @@ export default function LoginTurboTax() {
                   Sign in to continue
                 </Typography>
 
+                {errorMessage && (
+                  <Alert 
+                    severity="error" 
+                    icon={<ErrorIcon />}
+                    sx={{ 
+                      backgroundColor: '#FDF2F2',
+                      borderColor: '#FECACA',
+                      color: '#991B1B',
+                      '& .MuiAlert-icon': {
+                        color: '#DC2626'
+                      }
+                    }}
+                  >
+                    <Typography variant="body2" fontWeight={600} sx={{ color: '#991B1B' }}>
+                      Access Denied
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#7F1D1D', mt: 0.5 }}>
+                      {errorMessage}
+                    </Typography>
+                  </Alert>
+                )}
+
                 <Button
                   variant="contained"
                   size="large"
@@ -131,12 +171,40 @@ export default function LoginTurboTax() {
                   Sign in with Google
                 </Button>
 
+                <Button
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  onClick={handleMicrosoftLogin}
+                  startIcon={
+                    <Box 
+                      component="svg" 
+                      viewBox="0 0 24 24" 
+                      sx={{ width: 20, height: 20 }}
+                    >
+                      <path fill="currentColor" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
+                    </Box>
+                  }
+                  sx={{
+                    py: 1.75,
+                    fontSize: '1rem',
+                    fontWeight: 500,
+                    backgroundColor: '#212121',
+                    '&:hover': {
+                      backgroundColor: '#424242',
+                    },
+                  }}
+                  aria-label="Sign in with Microsoft"
+                >
+                  Sign in with Microsoft
+                </Button>
+
                 <Box textAlign="center">
                   <Typography 
                     variant="caption" 
                     sx={{ color: '#6B778C' }}
                   >
-                    We'll use your Google account to securely save your reports
+                    We'll use your account to securely save your reports
                   </Typography>
                 </Box>
               </Stack>

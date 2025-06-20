@@ -27,14 +27,26 @@ function isValidObjectId(id: string): boolean {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Google OAuth routes - only register if Google OAuth is configured
+  // OAuth configuration checks
   let isGoogleOAuthConfigured = false;
+  let isMicrosoftOAuthConfigured = false;
+  
   try {
     const credentialsPath = path.join(process.cwd(), 'server/config/credentials.json');
     const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
-    isGoogleOAuthConfigured = !!(credentials?.web?.client_id && credentials?.web?.client_secret);
+    
+    // Check Google OAuth config (support both old and new format)
+    isGoogleOAuthConfigured = !!(
+      (credentials?.google?.web?.client_id && credentials?.google?.web?.client_secret) ||
+      (credentials?.web?.client_id && credentials?.web?.client_secret)
+    );
+    
+    // Check Microsoft OAuth config
+    isMicrosoftOAuthConfigured = !!(credentials?.microsoft?.client_id && credentials?.microsoft?.client_secret);
   } catch (error) {
+    // Fallback to environment variables
     isGoogleOAuthConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+    isMicrosoftOAuthConfigured = !!(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
   }
   
   if (isGoogleOAuthConfigured) {
@@ -58,7 +70,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     );
 
     app.get('/auth/google/callback',
-      passport.authenticate('google', { failureRedirect: '/login' }),
+      passport.authenticate('google', { 
+        failureRedirect: '/login?error=verification_failed&message=User%20not%20verified.%20Only%20verified%20paying%20users%20can%20access%20this%20application.'
+      }),
       (req, res) => {
         // Check if there's a return URL in session
         const returnTo = (req.session as any).returnTo;
@@ -79,6 +93,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     app.get('/auth/google/callback', (req, res) => {
       res.status(501).json({ message: "Google OAuth not configured" });
+    });
+  }
+
+  // Microsoft OAuth routes - only register if Microsoft OAuth is configured
+  if (isMicrosoftOAuthConfigured) {
+    app.get('/auth/microsoft',
+      (req, res, next) => {
+        // Store the return URL in session if provided
+        const returnTo = req.query.returnTo as string;
+        if (returnTo) {
+          (req.session as any).returnTo = returnTo;
+        }
+        next();
+      },
+      passport.authenticate('microsoft', {
+        scope: ['user.read']
+      })
+    );
+
+    app.get('/auth/microsoft/callback',
+      passport.authenticate('microsoft', { 
+        failureRedirect: '/login?error=verification_failed&message=User%20not%20verified.%20Only%20verified%20paying%20users%20can%20access%20this%20application.'
+      }),
+      (req, res) => {
+        // Check if there's a return URL in session
+        const returnTo = (req.session as any).returnTo;
+        if (returnTo) {
+          delete (req.session as any).returnTo; // Clear the return URL
+          res.redirect(returnTo);
+        } else {
+          // Default redirect to dashboard
+          res.redirect('/dashboard');
+        }
+      }
+    );
+  } else {
+    // Provide fallback routes when Microsoft OAuth is not configured
+    app.get('/auth/microsoft', (req, res) => {
+      res.status(501).json({ message: "Microsoft OAuth not configured" });
+    });
+
+    app.get('/auth/microsoft/callback', (req, res) => {
+      res.status(501).json({ message: "Microsoft OAuth not configured" });
     });
   }
 

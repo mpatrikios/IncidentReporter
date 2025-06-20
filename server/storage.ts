@@ -1,4 +1,4 @@
-import { User, Report, FormStep, type IUser, type IReport, type IFormStep, type GoogleUser, type CreateReport, type CreateFormStep } from "@shared/schema";
+import { User, Report, FormStep, type IUser, type IReport, type IFormStep, type CreateUser, type CreateReport, type CreateFormStep } from "@shared/schema";
 import { connectDB } from "./db";
 import mongoose from "mongoose";
 
@@ -6,8 +6,9 @@ export interface IStorage {
   // Users - Authentication
   getUser(id: string): Promise<IUser | null>;
   getUserByGoogleId(googleId: string): Promise<IUser | null>;
+  getUserByMicrosoftId(microsoftId: string): Promise<IUser | null>;
   getUserByEmail(email: string): Promise<IUser | null>;
-  createUser(user: GoogleUser): Promise<IUser>;
+  createUser(user: CreateUser): Promise<IUser>;
   updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null>;
   getUserWithTokens(id: string): Promise<IUser | null>;
   
@@ -54,6 +55,16 @@ export class MongoStorage implements IStorage {
     }
   }
 
+  async getUserByMicrosoftId(microsoftId: string): Promise<IUser | null> {
+    try {
+      await connectDB();
+      return User.findOne({ microsoftId });
+    } catch (error) {
+      console.log('Database not available for getUserByMicrosoftId');
+      return null;
+    }
+  }
+
   async getUserByEmail(email: string): Promise<IUser | null> {
     try {
       await connectDB();
@@ -64,7 +75,7 @@ export class MongoStorage implements IStorage {
     }
   }
 
-  async createUser(userData: GoogleUser): Promise<IUser> {
+  async createUser(userData: CreateUser): Promise<IUser> {
     try {
       await connectDB();
       const user = new User(userData);

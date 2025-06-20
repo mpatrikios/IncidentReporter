@@ -3,7 +3,8 @@ import { z } from "zod";
 
 // User Interface and Schema
 export interface IUser extends Document {
-  googleId: string;
+  googleId?: string;
+  microsoftId?: string;
   email: string;
   name: string;
   picture?: string;
@@ -14,13 +15,16 @@ export interface IUser extends Document {
   isEngineer: boolean;
   googleAccessToken?: string;
   googleRefreshToken?: string;
+  microsoftAccessToken?: string;
+  microsoftRefreshToken?: string;
   tokenExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const userSchema = new Schema<IUser>({
-  googleId: { type: String, required: true, unique: true, index: true },
+  googleId: { type: String, sparse: true, unique: true, index: true },
+  microsoftId: { type: String, sparse: true, unique: true, index: true },
   email: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true },
   picture: { type: String },
@@ -31,6 +35,8 @@ const userSchema = new Schema<IUser>({
   isEngineer: { type: Boolean, default: false },
   googleAccessToken: { type: String, select: false }, // Don't include in queries by default for security
   googleRefreshToken: { type: String, select: false }, // Don't include in queries by default for security
+  microsoftAccessToken: { type: String, select: false }, // Don't include in queries by default for security
+  microsoftRefreshToken: { type: String, select: false }, // Don't include in queries by default for security
   tokenExpiresAt: { type: Date },
 }, {
   timestamps: true // Automatically adds createdAt and updatedAt
@@ -215,6 +221,21 @@ export const googleUserSchema = z.object({
   tokenExpiresAt: z.date().optional(),
 });
 
+export const microsoftUserSchema = z.object({
+  microsoftId: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  picture: z.string().url().optional(),
+  givenName: z.string().optional(),
+  familyName: z.string().optional(),
+  title: z.string().optional(),
+  company: z.string().optional(),
+  isEngineer: z.boolean().default(false),
+  microsoftAccessToken: z.string().optional(),
+  microsoftRefreshToken: z.string().optional(),
+  tokenExpiresAt: z.date().optional(),
+});
+
 export const createReportSchema = z.object({
   title: z.string().optional(),
   reportType: z.string().optional(), 
@@ -262,6 +283,8 @@ export const imageResponseSchema = z.object({
 
 // Type exports
 export type GoogleUser = z.infer<typeof googleUserSchema>;
+export type MicrosoftUser = z.infer<typeof microsoftUserSchema>;
+export type CreateUser = GoogleUser | MicrosoftUser;
 export type CreateReport = z.infer<typeof createReportSchema>;
 export type CreateFormStep = z.infer<typeof createFormStepSchema>;
 export type UploadImage = z.infer<typeof uploadImageSchema>;
