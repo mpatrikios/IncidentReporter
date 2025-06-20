@@ -22,12 +22,12 @@ import type { Report } from "@shared/schema";
 
 // Step Components
 import { StepNavigation } from "@/components/wizard/step-navigation";
-import { ProjectInformationStep } from "@/components/wizard/project-information";
+import { ProjectInformationStepTurboTax } from "@/components/wizard/project-information-turbotax";
 import { AssignmentScopeStep } from "@/components/wizard/assignment-scope";
-import { BuildingAndSiteStep } from "@/components/wizard/building-and-site";
-import { ResearchStep } from "@/components/wizard/research";
-import { DiscussionAndAnalysisStep } from "@/components/wizard/discussion-and-analysis";
-import { ConclusionsStep } from "@/components/wizard/conclusions";
+import { BuildingAndSiteStepTurboTax } from "@/components/wizard/building-and-site-turbotax";
+import { ResearchStepTurboTax } from "@/components/wizard/research-turbotax";
+import { DiscussionAndAnalysisStepTurboTax } from "@/components/wizard/discussion-and-analysis-turbotax";
+import { ConclusionsStepTurboTax } from "@/components/wizard/conclusions-turbotax";
 import { SubmitReportStep } from "@/components/wizard/submit-report";
 
 export default function ReportWizard() {
@@ -129,12 +129,11 @@ export default function ReportWizard() {
     
     switch (currentStep) {
       case 1:
-        return <ProjectInformationStep 
+        return <ProjectInformationStepTurboTax 
           ref={stepRef} 
           reportId={reportId} 
           initialData={stepData} 
           onSubmit={handleNext}
-          isFirstStep={true}
         />;
       case 2:
         return <AssignmentScopeStep 
@@ -145,38 +144,34 @@ export default function ReportWizard() {
           onPrevious={handlePrevious}
         />;
       case 3:
-        return <BuildingAndSiteStep 
+        return <BuildingAndSiteStepTurboTax 
           ref={stepRef} 
           reportId={reportId} 
           initialData={stepData} 
           onSubmit={handleNext}
-          onPrevious={handlePrevious}
         />;
       case 4:
-        return <ResearchStep 
+        return <ResearchStepTurboTax 
           ref={stepRef} 
           reportId={reportId} 
           initialData={stepData} 
           onSubmit={handleNext}
-          onPrevious={handlePrevious}
           formData={report?.formData}
           steps={steps}
         />;
       case 5:
-        return <DiscussionAndAnalysisStep 
+        return <DiscussionAndAnalysisStepTurboTax 
           ref={stepRef} 
           reportId={reportId} 
           initialData={stepData} 
           onSubmit={handleNext}
-          onPrevious={handlePrevious}
         />;
       case 6:
-        return <ConclusionsStep 
+        return <ConclusionsStepTurboTax 
           ref={stepRef} 
           reportId={reportId} 
           initialData={stepData} 
           onSubmit={handleNext}
-          onPrevious={handlePrevious}
           initialTitle={report?.title}
           steps={steps}
         />;
@@ -188,12 +183,11 @@ export default function ReportWizard() {
           initialTitle={report?.title}
         />;
       default:
-        return <ProjectInformationStep 
+        return <ProjectInformationStepTurboTax 
           ref={stepRef} 
           reportId={reportId} 
           initialData={stepData} 
           onSubmit={handleNext}
-          isFirstStep={true}
         />;
     }
   };

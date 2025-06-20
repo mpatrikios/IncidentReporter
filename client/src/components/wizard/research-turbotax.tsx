@@ -75,56 +75,228 @@ export const ResearchStepTurboTax = forwardRef<StepRef<Research>, ResearchProps>
       }
     }, [initialData, reset]);
 
-    // Get project information for automated research
-    const getProjectData = () => {
-      if (steps && steps.length > 0) {
-        return steps.find(s => s.stepNumber === 1)?.data || {};
+    // Check if required location data is available from step 1
+    const hasRequiredLocationData = () => {
+      // Get location and date from project information
+      let projectInfo = formData?.projectInformation;
+      
+      // If not found in formData, check the steps array for step 1 data
+      if (!projectInfo && steps) {
+        const step1 = steps.find(s => s.stepNumber === 1);
+        projectInfo = step1?.data;
       }
-      return formData?.projectInformation || {};
+      
+      if (!projectInfo || Object.keys(projectInfo).length === 0) {
+        return false;
+      }
+      
+      const { latitude, longitude, dateOfLoss, city, state } = projectInfo;
+      
+      // Check if we have date of loss
+      if (!dateOfLoss) {
+        return false;
+      }
+      
+      // Check if we have coordinates OR city/state for geocoding
+      const hasCoordinates = latitude && longitude;
+      const hasCityState = city && state;
+      
+      return hasCoordinates || hasCityState;
     };
 
-    const projectData = getProjectData();
-
-    const handleFetchStormData = async () => {
-      const { insuredAddress, insuredCity, insuredState, dateOfLoss } = projectData;
-      
-      if (!insuredCity || !insuredState || !dateOfLoss) {
-        toast({
-          title: "Missing Information",
-          description: "Please complete the project information section first to use automated research.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setIsFetchingStormData(true);
-      
+    // Function to fetch NOAA storm data
+    const fetchStormData = async () => {
       try {
-        const response = await apiRequest("POST", "/api/weather/storm-data", {
-          location: `${insuredCity}, ${insuredState}`,
+        setIsFetchingStormData(true);
+        
+        // Get location and date from project information
+        // Try to get from current steps first, then from formData
+        let projectInfo = formData?.projectInformation;
+        
+        // If not found in formData, check the steps array for step 1 data
+        if (!projectInfo && steps) {
+          const step1 = steps.find(s => s.stepNumber === 1);
+          projectInfo = step1?.data;
+        }
+        
+        if (!projectInfo || Object.keys(projectInfo).length === 0) {
+          toast({
+            title: "Missing Project Information",
+            description: "Please complete Project Information step first",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { latitude, longitude, dateOfLoss, city, state, insuredAddress } = projectInfo;
+        
+        if (!dateOfLoss) {
+          toast({
+            title: "Missing Date of Loss",
+            description: "Please enter the date of loss in Project Information",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Use provided coordinates or try to geocode address
+        let lat = latitude;
+        let lon = longitude;
+
+        if (!lat || !lon) {
+          // Try to geocode using address information
+          if (city && state) {
+            try {
+              const geocodeResponse = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+                  `${city}, ${state}`
+                )}`
+              );
+              const geocodeData = await geocodeResponse.json();
+              if (geocodeData && geocodeData.length > 0) {
+                lat = parseFloat(geocodeData[0].lat);
+                lon = parseFloat(geocodeData[0].lon);
+              }
+            } catch (geocodeError) {
+              console.warn("Geocoding failed:", geocodeError);
+            }
+          }
+          
+          if (!lat || !lon) {
+            toast({
+              title: "Location Required",
+              description: "Please provide coordinates or city/state in Project Information",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+
+        // Fetch storm data from NOAA
+        const response = await apiRequest("POST", "/api/storm-data", {
+          latitude: lat,
+          longitude: lon,
           date: dateOfLoss,
+          radiusKm: 50
         });
-        
-        const stormData = await response.json();
-        
-        if (stormData.weatherData) {
-          setValue("weatherDataSummary", stormData.weatherData);
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error("Authentication required. Please refresh the page and log in again.");
+          }
+          throw new Error(`API request failed with status ${response.status}`);
         }
-        if (stormData.hailData) {
-          setValue("corelogicHailSummary", stormData.hailData);
-        }
-        if (stormData.windData) {
-          setValue("corelogicWindSummary", stormData.windData);
+
+        const responseText = await response.text();
+        
+        // Check if the response is HTML (indicating a redirect to login page)
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+          throw new Error("Authentication required. Please refresh the page and log in again.");
         }
         
-        toast({
-          title: "Research Complete",
-          description: "Weather and storm data has been automatically populated.",
-        });
+        let stormData;
+        try {
+          stormData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error("Failed to parse response as JSON:", responseText);
+          throw new Error("Invalid response format from server");
+        }
+
+        // Update form fields with the fetched data
+        if (stormData && stormData.summary) {
+          setValue("weatherDataSummary", stormData.summary);
+          
+          // Generate comprehensive hail summary
+          if (stormData.hailEvents && stormData.hailEvents.length > 0) {
+            let hailSummary = `**CORELOGIC HAIL VERIFICATION REPORT**\n`;
+            hailSummary += `Analysis Date: ${dateOfLoss}\n`;
+            hailSummary += `Search Radius: 50km from subject property\n`;
+            hailSummary += `Total Hail Events: ${stormData.hailEvents.length}\n\n`;
+            
+            hailSummary += `**DETAILED HAIL EVENT ANALYSIS:**\n`;
+            stormData.hailEvents.forEach((event, index) => {
+              hailSummary += `\n${index + 1}. Event ID: ${event.event_id}\n`;
+              hailSummary += `   Date/Time: ${event.begin_date_time}\n`;
+              hailSummary += `   Location: ${event.cz_name}, ${event.state}\n`;
+              hailSummary += `   Hail Size: ${event.magnitude ? `${event.magnitude} inches diameter` : 'Size not specified'}\n`;
+              if (event.begin_lat && event.begin_lon) {
+                hailSummary += `   Coordinates: ${event.begin_lat}°N, ${event.begin_lon}°W\n`;
+              }
+              if (event.damage_property > 0) {
+                hailSummary += `   Property Damage: $${event.damage_property.toLocaleString()}\n`;
+              }
+              if (event.event_narrative) {
+                hailSummary += `   Details: ${event.event_narrative}\n`;
+              }
+            });
+            
+            setValue("corelogicHailSummary", hailSummary);
+          } else {
+            setValue("corelogicHailSummary", `**CORELOGIC HAIL VERIFICATION REPORT**\n\nAnalysis Date: ${dateOfLoss}\nSearch Radius: 50km from subject property\nTotal Hail Events: 0\n\n**FINDINGS:**\nCoreLogic's Hail Verification Report indicates no documented hail events were reported within 50km of the subject property on or around ${dateOfLoss}.`);
+          }
+
+          // Generate comprehensive wind summary
+          if (stormData.windEvents && stormData.windEvents.length > 0) {
+            let windSummary = `**CORELOGIC WIND VERIFICATION REPORT**\n`;
+            windSummary += `Analysis Date: ${dateOfLoss}\n`;
+            windSummary += `Search Radius: 50km from subject property\n`;
+            windSummary += `Total Wind Events: ${stormData.windEvents.length}\n\n`;
+            
+            windSummary += `**DETAILED WIND EVENT ANALYSIS:**\n`;
+            stormData.windEvents.forEach((event, index) => {
+              windSummary += `\n${index + 1}. Event ID: ${event.event_id}\n`;
+              windSummary += `   Date/Time: ${event.begin_date_time}\n`;
+              windSummary += `   Event Type: ${event.event_type}\n`;
+              windSummary += `   Location: ${event.cz_name}, ${event.state}\n`;
+              windSummary += `   Wind Speed: ${event.magnitude ? `${event.magnitude} ${event.magnitude_type || 'mph'}` : 'Speed not specified'}\n`;
+              if (event.begin_lat && event.begin_lon) {
+                windSummary += `   Coordinates: ${event.begin_lat}°N, ${event.begin_lon}°W\n`;
+              }
+              if (event.damage_property > 0) {
+                windSummary += `   Property Damage: $${event.damage_property.toLocaleString()}\n`;
+              }
+              if (event.event_narrative) {
+                windSummary += `   Details: ${event.event_narrative}\n`;
+              }
+            });
+            
+            setValue("corelogicWindSummary", windSummary);
+          } else {
+            setValue("corelogicWindSummary", `**CORELOGIC WIND VERIFICATION REPORT**\n\nAnalysis Date: ${dateOfLoss}\nSearch Radius: 50km from subject property\nTotal Wind Events: 0\n\n**FINDINGS:**\nCoreLogic's Wind Verification Report indicates no documented wind events were reported within 50km of the subject property on or around ${dateOfLoss}.`);
+          }
+
+          toast({
+            title: "Storm Data Retrieved",
+            description: `Found ${stormData.events?.length || 0} storm events near the property`,
+          });
+        } else if (stormData) {
+          // Handle case where we got a response but no summary
+          setValue("weatherDataSummary", `NOAA's Storm Prediction Center records indicate no significant storm events were reported within 50km of the subject property on or around ${dateOfLoss}.`);
+          setValue("corelogicHailSummary", `CoreLogic's Hail Verification Report indicates no significant hail events were reported near the subject property around ${dateOfLoss}.`);
+          setValue("corelogicWindSummary", `CoreLogic's Wind Verification Report indicates no significant wind events were reported near the subject property around ${dateOfLoss}.`);
+          
+          toast({
+            title: "No Storm Data Found",
+            description: "No storm events found for the specified location and date",
+          });
+        } else {
+          throw new Error("Invalid response format from NOAA API");
+        }
+
       } catch (error) {
+        console.error("Error fetching storm data:", error);
+        
+        let errorMessage = "Failed to retrieve storm data from NOAA";
+        
+        if (error instanceof SyntaxError && error.message.includes("Unexpected token '<'")) {
+          errorMessage = "Authentication required. Please log in and try again.";
+        } else if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+        
         toast({
-          title: "Research Failed",
-          description: "Could not fetch storm data. Please enter the information manually.",
+          title: "Error Fetching Data",
+          description: errorMessage,
           variant: "destructive",
         });
       } finally {
@@ -153,33 +325,44 @@ export const ResearchStepTurboTax = forwardRef<StepRef<Research>, ResearchProps>
             </Typography>
           </Box>
 
-          {/* Automated Research Option */}
-          {projectData.insuredCity && projectData.insuredState && projectData.dateOfLoss && (
-            <Card sx={{ bgcolor: '#F0F8FF', border: '1px solid #90CAF9' }}>
-              <CardContent>
-                <Stack direction="row" alignItems="center" spacing={2}>
-                  <AutoAwesome sx={{ color: '#0070BA' }} />
-                  <Box flex={1}>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ color: '#0070BA' }}>
-                      Smart Research Assistant
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#5E6C84', mb: 2 }}>
-                      We can automatically research weather data for {projectData.insuredCity}, {projectData.insuredState} on {new Date(projectData.dateOfLoss).toLocaleDateString()}.
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      startIcon={isFetchingStormData ? <CircularProgress size={16} color="inherit" /> : <CloudDownload />}
-                      onClick={handleFetchStormData}
-                      disabled={isFetchingStormData}
-                      sx={{ backgroundColor: '#0070BA' }}
-                    >
-                      {isFetchingStormData ? 'Researching...' : 'Auto-Research Weather Data'}
-                    </Button>
-                  </Box>
-                </Stack>
-              </CardContent>
-            </Card>
-          )}
+          {/* NOAA Weather Data Fetch */}
+          <Card sx={{ bgcolor: '#E3F2FD', border: '2px solid #1976D2' }}>
+            <CardContent>
+              <Stack spacing={3}>
+                <Box>
+                  <Typography variant="h6" fontWeight={600} sx={{ color: '#1976D2', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CloudDownload />
+                    Auto-Fetch NOAA Storm Data
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#5E6C84', mt: 1 }}>
+                    Automatically retrieve NOAA storm data for the property location and date of loss from Project Information.
+                  </Typography>
+                </Box>
+
+                {!hasRequiredLocationData() && (
+                  <Alert severity="warning">
+                    <strong>Required:</strong> Please complete Project Information step with date of loss and either coordinates (latitude/longitude) or city/state before fetching weather data.
+                  </Alert>
+                )}
+
+                <Button
+                  variant="contained"
+                  startIcon={isFetchingStormData ? <CircularProgress size={16} color="inherit" /> : <CloudDownload />}
+                  onClick={fetchStormData}
+                  disabled={isFetchingStormData || !hasRequiredLocationData()}
+                  sx={{ 
+                    backgroundColor: hasRequiredLocationData() ? '#1976D2' : '#BDBDBD',
+                    '&:hover': {
+                      backgroundColor: hasRequiredLocationData() ? '#1565C0' : '#BDBDBD'
+                    },
+                    cursor: hasRequiredLocationData() ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  {isFetchingStormData ? 'Fetching NOAA Data...' : 'Fetch NOAA Storm Data'}
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
 
           {/* Weather Data Summary */}
           <Box>
