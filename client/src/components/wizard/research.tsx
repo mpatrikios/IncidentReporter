@@ -63,6 +63,35 @@ export const ResearchStep = forwardRef<StepRef<Research>, ResearchProps>(({
     }
   }, [initialData, form]);
 
+  // Check if required location data is available from step 1
+  const hasRequiredLocationData = () => {
+    // Get location and date from project information
+    let projectInfo = formData?.projectInformation;
+    
+    // If not found in formData, check the steps array for step 1 data
+    if (!projectInfo && steps) {
+      const step1 = steps.find(s => s.stepNumber === 1);
+      projectInfo = step1?.data;
+    }
+    
+    if (!projectInfo || Object.keys(projectInfo).length === 0) {
+      return false;
+    }
+    
+    const { latitude, longitude, dateOfLoss, city, state } = projectInfo;
+    
+    // Check if we have date of loss
+    if (!dateOfLoss) {
+      return false;
+    }
+    
+    // Check if we have coordinates OR city/state for geocoding
+    const hasCoordinates = latitude && longitude;
+    const hasCityState = city && state;
+    
+    return hasCoordinates || hasCityState;
+  };
+
   // Function to fetch NOAA storm data
   const fetchStormData = async () => {
     try {
@@ -340,11 +369,26 @@ export const ResearchStep = forwardRef<StepRef<Research>, ResearchProps>(({
               Automatically retrieve NOAA storm data for the property location and date of loss from Project Information.
             </p>
             
+            {!hasRequiredLocationData() && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800 flex items-center">
+                  <i className="fas fa-exclamation-triangle text-amber-600 mr-2"></i>
+                  <span>
+                    <strong>Required:</strong> Please complete Project Information step with date of loss and either coordinates (latitude/longitude) or city/state before fetching weather data.
+                  </span>
+                </p>
+              </div>
+            )}
+            
             <Button
               type="button"
               onClick={fetchStormData}
-              disabled={isFetchingStormData}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              disabled={isFetchingStormData || !hasRequiredLocationData()}
+              className={`${
+                !hasRequiredLocationData() 
+                  ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed text-white opacity-60' 
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
             >
               {isFetchingStormData ? (
                 <>

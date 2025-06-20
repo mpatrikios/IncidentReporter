@@ -49,6 +49,7 @@ export interface IReport extends Document {
   projectId: string;
   title: string;
   reportType: string; // structural, transportation, water, geotechnical
+  template?: string; // hail, wind, storm, tornado
   status: string; // draft, in_review, approved, completed
   userId: mongoose.Types.ObjectId;
   assignedEngineer?: mongoose.Types.ObjectId;
@@ -63,6 +64,7 @@ const reportSchema = new Schema<IReport>({
   projectId: { type: String, required: true, unique: true, index: true },
   title: { type: String, required: true },
   reportType: { type: String, required: true }, // structural, transportation, water, geotechnical
+  template: { type: String, enum: ['hail', 'wind', 'storm', 'tornado'], index: true }, // template type
   status: { type: String, required: true, default: "draft", index: true }, // draft, in_review, approved, completed
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   assignedEngineer: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -239,6 +241,7 @@ export const microsoftUserSchema = z.object({
 export const createReportSchema = z.object({
   title: z.string().optional(),
   reportType: z.string().optional(), 
+  template: z.enum(['hail', 'wind', 'storm', 'tornado']).optional(),
   status: z.string().optional(),
   projectId: z.string().optional(),
   userId: z.string().optional(),

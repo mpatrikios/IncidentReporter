@@ -54,17 +54,17 @@ export function StepNavigation({
               disabled={!isAccessible}
               className={cn(
                 "w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 text-left group border-2",
-                "hover:shadow-md",
-                isCompleted && "bg-blue-50 border-blue-300 hover:bg-blue-100 text-blue-800",
-                isCurrent && !isCompleted && "bg-blue-100 border-blue-400 hover:bg-blue-200 shadow-md text-blue-900",
-                !isCurrent && !isCompleted && isAccessible && "bg-white border-grey-200 hover:bg-grey-50 text-grey-700",
+                "hover:shadow-md hover:scale-[1.02] cursor-pointer transform",
+                isCompleted && "bg-blue-50 border-blue-300 hover:bg-blue-100 text-blue-800 hover:border-blue-400",
+                isCurrent && !isCompleted && "bg-blue-100 border-blue-400 hover:bg-blue-200 shadow-md text-blue-900 hover:border-blue-500",
+                !isCurrent && !isCompleted && isAccessible && "bg-white border-grey-200 hover:bg-blue-50 hover:border-blue-300 text-grey-700",
                 !isAccessible && "opacity-50 cursor-not-allowed"
               )}
             >
               <div className={cn(
-                "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 border-2",
-                isCompleted && "bg-blue-600 border-blue-700 text-white",
-                isCurrent && !isCompleted && "bg-blue-700 border-blue-800 text-white", 
+                "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 border-2 group-hover:scale-110",
+                isCompleted && "bg-blue-600 border-blue-700 text-white group-hover:bg-blue-700",
+                isCurrent && !isCompleted && "bg-blue-700 border-blue-800 text-white group-hover:bg-blue-800", 
                 !isCurrent && !isCompleted && "bg-grey-100 border-grey-300 text-grey-600 group-hover:bg-blue-600 group-hover:border-blue-700 group-hover:text-white"
               )}>
                 {isCompleted ? (

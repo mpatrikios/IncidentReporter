@@ -4,6 +4,7 @@ import { useAuth, useLogout } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ReportTemplateDialog, type ReportTemplate } from "@/components/ReportTemplateDialog";
 import {
   Box,
   Container,
@@ -55,6 +56,7 @@ export default function HomeMUI() {
   const theme = useTheme();
   
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; reportId: string; reportTitle: string }>({
     open: false,
     reportId: '',
@@ -78,7 +80,12 @@ export default function HomeMUI() {
   };
 
   const handleCreateReport = () => {
-    setLocation("/report-wizard");
+    setTemplateDialogOpen(true);
+  };
+
+  const handleTemplateSelect = (template: ReportTemplate) => {
+    // Navigate to wizard with selected template
+    setLocation(`/report-wizard?template=${template.id}`);
   };
 
   const handleEditReport = (reportId: string) => {
@@ -474,6 +481,12 @@ export default function HomeMUI() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ReportTemplateDialog 
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
+        onTemplateSelect={handleTemplateSelect}
+      />
     </Box>
   );
 }

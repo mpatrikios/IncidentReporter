@@ -10,12 +10,14 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { ReportTemplateDialog, type ReportTemplate } from "@/components/ReportTemplateDialog";
 
 export default function Home() {
   const { user } = useAuth();
   const logout = useLogout();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   
   // Use React Query to fetch reports with proper caching and refetching
   const { data: reports = [], isLoading: isLoadingReports, refetch: refetchReports } = useQuery({
@@ -34,7 +36,12 @@ export default function Home() {
   };
 
   const handleCreateReport = () => {
-    setLocation("/report-wizard");
+    setTemplateDialogOpen(true);
+  };
+
+  const handleTemplateSelect = (template: ReportTemplate) => {
+    // Navigate to wizard with selected template
+    setLocation(`/report-wizard?template=${template.id}`);
   };
 
   const handleEditReport = (reportId: string) => {
@@ -391,6 +398,12 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <ReportTemplateDialog 
+        open={templateDialogOpen} 
+        onOpenChange={setTemplateDialogOpen}
+        onTemplateSelect={handleTemplateSelect}
+      />
     </div>
   );
 }

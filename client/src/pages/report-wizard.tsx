@@ -42,6 +42,7 @@ export default function ReportWizard() {
   // Handle both URL formats: /report-wizard?edit=123 and /reports/123
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const editReportId = urlParams.get('edit');
+  const selectedTemplate = urlParams.get('template');
   const pathReportId = id; // From /reports/:id route
   const reportId = editReportId || pathReportId || null;
   
@@ -158,7 +159,7 @@ export default function ReportWizard() {
           initialData={stepData} 
           onSubmit={handleNext}
           onPrevious={handlePrevious}
-          formData={stepData}
+          formData={report?.formData}
           steps={steps}
         />;
       case 5:
@@ -223,6 +224,11 @@ export default function ReportWizard() {
             </button>
             
             <div className="flex items-center gap-4">
+              {selectedTemplate && (
+                <Badge variant="secondary" className="px-3 py-1 text-sm font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                  {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)} Report
+                </Badge>
+              )}
               
               <Button
                 variant="outline"
