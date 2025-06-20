@@ -5,7 +5,7 @@ import sharp from 'sharp';
 
 interface ReportImage {
   originalFilename: string;
-  googleDriveUrl?: string;
+  s3Url?: string;
   publicUrl?: string;
   fileSize: number;
   description?: string;
@@ -321,7 +321,7 @@ class WordGenerationService {
         caption.addLineBreak();
 
         // Download and add image
-        const imageUrl = image.publicUrl || image.googleDriveUrl;
+        const imageUrl = image.publicUrl || image.s3Url;
         if (imageUrl) {
           const imageData = await this.downloadImage(imageUrl);
           if (imageData) {
@@ -364,9 +364,9 @@ class WordGenerationService {
         ref.addText(`   Description: ${image.description}`);
       }
       
-      if (image.googleDriveUrl) {
+      if (image.s3Url || image.publicUrl) {
         ref.addLineBreak();
-        ref.addText(`   Link: ${image.googleDriveUrl}`);
+        ref.addText(`   Link: ${image.publicUrl || image.s3Url}`);
       }
       
       ref.addLineBreak();

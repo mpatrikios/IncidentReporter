@@ -262,7 +262,7 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
           reportData,
           images: images.map(img => ({
             originalFilename: img.originalFilename,
-            googleDriveUrl: img.googleDriveUrl,
+            s3Url: img.s3Url,
             publicUrl: img.publicUrl,
             fileSize: img.fileSize,
             description: img.description,
@@ -288,7 +288,7 @@ export const ConclusionsStep = forwardRef<StepRef<Conclusions>, ConclusionsProps
           reportData,
           images: images.map(img => ({
             originalFilename: img.originalFilename,
-            googleDriveUrl: img.googleDriveUrl,
+            s3Url: img.s3Url,
             publicUrl: img.publicUrl,
             fileSize: img.fileSize,
             description: img.description,

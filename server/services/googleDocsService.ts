@@ -19,7 +19,7 @@ interface TemplateStyle {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
-  alignment?: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED';
+  alignment?: 'START' | 'CENTER' | 'END' | 'JUSTIFIED';
   spaceBefore?: number;
   spaceAfter?: number;
   fontFamily?: string;
@@ -188,15 +188,18 @@ class GoogleDocsService {
       // Check if text contains bullet points (starts with •, -, *, or numbers)
       const bulletPointPattern = /^[\s]*[•\-\*]|\d+\./gm;
       const hasBulletPoints = bulletPointPattern.test(text);
+      console.log(`DEBUG AI: Text for ${fieldType} has bullet points: ${hasBulletPoints}`);
 
       if (hasBulletPoints && aiEnhanceText && aiTextService.isConfigured()) {
         try {
-          console.log(`Generating paragraph for ${fieldType} from bullet points`);
+          console.log(`DEBUG AI: Generating paragraph for ${fieldType} from bullet points`);
+          console.log(`DEBUG AI: Original text:`, text.substring(0, 200));
           const generatedText = await aiTextService.generateParagraph({
             bulletPoints: text,
             fieldType,
             context: 'Civil engineering property inspection report'
           });
+          console.log(`DEBUG AI: Generated text for ${fieldType}:`, generatedText.substring(0, 200));
           return generatedText;
         } catch (error) {
           console.warn(`Failed to generate paragraph for ${fieldType}, using original text:`, error);
@@ -207,6 +210,8 @@ class GoogleDocsService {
       return text;
     };
 
+    console.log(`DEBUG AI: Processing template with aiEnhanceText=${aiEnhanceText}, isConfigured=${aiTextService.isConfigured()}`);
+    
     // Process each placeholder
     for (const [placeholderKey, placeholderConfig] of Object.entries(this.template.placeholders)) {
       let value = placeholderConfig.default;
@@ -368,7 +373,7 @@ class GoogleDocsService {
         insertText(section.title + '\n', {
           fontSize: 14,
           bold: true,
-          alignment: 'LEFT',
+          alignment: 'START',
           spaceAfter: 12
         });
       }

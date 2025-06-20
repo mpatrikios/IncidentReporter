@@ -16,7 +16,7 @@ interface DocumentGenerationProps {
     content: string;
     images: Array<{
       originalFilename: string;
-      googleDriveUrl?: string;
+      s3Url?: string;
       publicUrl?: string;
       fileSize: number;
       description?: string;

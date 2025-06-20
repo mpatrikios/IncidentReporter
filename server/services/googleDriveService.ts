@@ -5,12 +5,13 @@ import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
 
-interface UploadResult {
-  googleDriveId: string;
-  publicUrl: string;
-  webViewUrl: string;
-  filename: string;
-}
+/**
+ * Google Drive Service for Document Generation
+ * 
+ * This service handles Google Docs creation and management for generated reports.
+ * Image storage is handled separately by S3Service - this service only manages
+ * document generation, folder creation, and document storage in Google Drive.
+ */
 
 interface FolderStructure {
   reportFolderId: string;
@@ -122,115 +123,8 @@ class GoogleDriveService {
   }
 
   // Upload image to Google Drive
-  public async uploadImage(
-    userId: string, 
-    imageBuffer: Buffer, 
-    originalFilename: string, 
-    mimeType: string, 
-    reportId: string,
-    reportTitle: string
-  ): Promise<UploadResult> {
-    const userAuth = await this.createUserAuth(userId);
-    if (!userAuth) throw new Error('Failed to create user authentication');
-
-    const { drive } = userAuth;
-
-    // Get or create folder structure
-    const folders = await this.createReportFolders(userId, reportId, reportTitle);
-
-    // Generate unique filename
-    const timestamp = Date.now();
-    const filename = `${reportId}_${timestamp}_${originalFilename}`;
-
-    // Convert buffer to stream
-    const stream = new Readable();
-    stream.push(imageBuffer);
-    stream.push(null);
-
-    // Upload file
-    const driveResponse = await drive.files.create({
-      requestBody: {
-        name: filename,
-        parents: [folders.imagesFolderId]
-      },
-      media: {
-        mimeType: mimeType,
-        body: stream
-      },
-      fields: 'id, webViewLink'
-    });
-
-    const fileId = driveResponse.data.id!;
-
-    // Make file publicly accessible for embedding
-    await drive.permissions.create({
-      fileId: fileId,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone'
-      }
-    });
-
-    return {
-      googleDriveId: fileId,
-      publicUrl: `https://drive.google.com/uc?id=${fileId}`,
-      webViewUrl: driveResponse.data.webViewLink || `https://drive.google.com/file/d/${fileId}/view`,
-      filename
-    };
-  }
-
-  // Get image public URL (ensure it's accessible)
-  public async ensureImageIsPublic(userId: string, googleDriveId: string): Promise<string> {
-    const userAuth = await this.createUserAuth(userId);
-    if (!userAuth) throw new Error('Failed to create user authentication');
-
-    const { drive } = userAuth;
-
-    try {
-      // Check if already has public permission
-      const permissions = await drive.permissions.list({
-        fileId: googleDriveId,
-        fields: 'permissions(id, type, role)'
-      });
-
-      const hasPublicAccess = permissions.data.permissions?.some(
-        p => p.type === 'anyone' && p.role === 'reader'
-      );
-
-      if (!hasPublicAccess) {
-        // Add public permission
-        await drive.permissions.create({
-          fileId: googleDriveId,
-          requestBody: {
-            role: 'reader',
-            type: 'anyone'
-          }
-        });
-      }
-
-      return `https://drive.google.com/uc?id=${googleDriveId}`;
-    } catch (error) {
-      console.error('Error ensuring image is public:', error);
-      throw new Error('Failed to make image publicly accessible');
-    }
-  }
-
-  // Delete image from Google Drive
-  public async deleteImage(userId: string, googleDriveId: string): Promise<void> {
-    const userAuth = await this.createUserAuth(userId);
-    if (!userAuth) throw new Error('Failed to create user authentication');
-
-    const { drive } = userAuth;
-
-    try {
-      await drive.files.delete({
-        fileId: googleDriveId
-      });
-    } catch (error) {
-      console.error('Error deleting image from Google Drive:', error);
-      throw error;
-    }
-  }
+  // Image storage methods removed - using S3 for image storage
+  // Google Drive is now only used for document generation and storage
 
   // Get report folder URL
   public async getReportFolderUrl(userId: string, reportId: string, reportTitle: string): Promise<string> {

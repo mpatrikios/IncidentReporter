@@ -103,9 +103,9 @@ export interface IReportImage extends Document {
   originalFilename: string;
   fileSize: number;
   mimeType: string;
-  googleDriveId: string;
-  googleDriveUrl?: string;
-  publicUrl?: string;
+  s3Key: string;
+  s3Url: string;
+  publicUrl: string;
   uploadOrder: number;
   description?: string;
   category?: string; // building, exterior, interior, documents, etc.
@@ -120,9 +120,9 @@ const reportImageSchema = new Schema<IReportImage>({
   originalFilename: { type: String, required: true },
   fileSize: { type: Number, required: true },
   mimeType: { type: String, required: true },
-  googleDriveId: { type: String, required: true, unique: true },
-  googleDriveUrl: { type: String },
-  publicUrl: { type: String },
+  s3Key: { type: String, required: true, unique: true },
+  s3Url: { type: String, required: true },
+  publicUrl: { type: String, required: true },
   uploadOrder: { type: Number, required: true },
   description: { type: String },
   category: { type: String },
@@ -250,9 +250,9 @@ export const imageResponseSchema = z.object({
   originalFilename: z.string(),
   fileSize: z.number(),
   mimeType: z.string(),
-  googleDriveId: z.string(),
-  googleDriveUrl: z.string().optional(),
-  publicUrl: z.string().optional(),
+  s3Key: z.string(),
+  s3Url: z.string(),
+  publicUrl: z.string(),
   uploadOrder: z.number(),
   description: z.string().optional(),
   category: z.string().optional(),

@@ -18,7 +18,7 @@ const generateWordSchema = z.object({
   }),
   images: z.array(z.object({
     originalFilename: z.string(),
-    googleDriveUrl: z.string().optional(),
+    s3Url: z.string().optional(),
     publicUrl: z.string().optional(),
     fileSize: z.number(),
     description: z.string().optional(),

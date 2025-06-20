@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,7 +33,8 @@ interface UploadedImage {
   originalFilename: string;
   fileSize: number;
   mimeType: string;
-  googleDriveUrl?: string;
+  s3Key?: string;
+  s3Url?: string;
   publicUrl?: string;
   description?: string;
   category?: string;
@@ -66,6 +67,29 @@ export function ImageUpload({
   const [editingImage, setEditingImage] = useState<UploadedImage | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const { toast } = useToast();
+
+  // Load existing images when component mounts
+  useEffect(() => {
+    if (!reportId) return;
+
+    const loadExistingImages = async () => {
+      try {
+        const response = await fetch(`/api/reports/${reportId}/images`);
+        if (response.ok) {
+          const allImages = await response.json();
+          // Filter images by category if specified
+          const filteredImages = category ? 
+            allImages.filter((img: any) => img.category === category) :
+            allImages;
+          onImagesChange(filteredImages);
+        }
+      } catch (error) {
+        console.error('Failed to load existing images:', error);
+      }
+    };
+
+    loadExistingImages();
+  }, [reportId, category, onImagesChange]);
 
   const uploadImage = async (file: File, tempId: string) => {
     const formData = new FormData();
@@ -314,11 +338,11 @@ export function ImageUpload({
                   
                   {/* Overlay with actions */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    {image.googleDriveUrl && (
+                    {(image.s3Url || image.publicUrl) && (
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => window.open(image.googleDriveUrl, '_blank')}
+                        onClick={() => window.open(image.publicUrl || image.s3Url, '_blank')}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>

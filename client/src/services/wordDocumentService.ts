@@ -3,7 +3,7 @@ import { saveAs } from 'file-saver';
 
 interface ReportImage {
   originalFilename: string;
-  googleDriveUrl?: string;
+  s3Url?: string;
   publicUrl?: string;
   fileSize: number;
   description?: string;
@@ -662,7 +662,7 @@ class WordDocumentService {
    */
   private async downloadAndProcessImage(image: ReportImage): Promise<ArrayBuffer | null> {
     try {
-      const imageUrl = image.publicUrl || image.googleDriveUrl;
+      const imageUrl = image.publicUrl || image.s3Url;
       if (!imageUrl) return null;
 
       // Download image
@@ -757,8 +757,8 @@ class WordDocumentService {
         referenceText.push(`   Description: ${image.description}`);
       }
       
-      if (image.googleDriveUrl) {
-        referenceText.push(`   Link: ${image.googleDriveUrl}`);
+      if (image.s3Url) {
+        referenceText.push(`   Link: ${image.s3Url}`);
       }
 
       paragraphs.push(

@@ -6,6 +6,7 @@ import { setupPassport } from "./auth";
 import { connectDB } from "./db";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { dropGoogleDriveIndex } from "./migrations/dropGoogleDriveIndex";
 
 const app = express();
 app.use(express.json());
@@ -69,6 +70,11 @@ app.use((req, res, next) => {
     console.log('Attempting MongoDB connection...');
     await connectDB();
     console.log('MongoDB connection successful');
+    
+    // Run database migrations
+    console.log('Running database migrations...');
+    await dropGoogleDriveIndex();
+    console.log('Database migrations completed');
   } catch (error: any) {
     console.log(
       "MongoDB connection failed, continuing without database:",

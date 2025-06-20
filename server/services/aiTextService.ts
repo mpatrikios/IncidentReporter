@@ -21,7 +21,10 @@ class AITextService {
   }
 
   public async generateParagraph(options: AITextGenerationOptions): Promise<string> {
+    console.log('DEBUG AI: generateParagraph called with:', { fieldType: options.fieldType, hasOpenAI: !!this.openai });
+    
     if (!this.openai) {
+      console.log('DEBUG AI: OpenAI not configured - missing API key');
       throw new Error('OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.');
     }
 

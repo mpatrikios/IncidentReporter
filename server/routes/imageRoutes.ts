@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { requireAuth } from '../auth';
 import { storage } from '../storage';
-import { googleDriveService } from '../services/googleDriveService';
+import { s3Service } from '../services/s3Service';
 import { ReportImage, Report, uploadImageSchema } from '@shared/schema';
 import { z } from 'zod';
 
@@ -43,11 +43,15 @@ router.post('/api/reports/:reportId/images', requireAuth, upload.single('image')
       return res.status(400).json({ error: 'No image file provided' });
     }
 
-    // Validate request body
-    const validationResult = uploadImageSchema.safeParse({
+    // Parse and validate request body (FormData comes as strings)
+    const validationData = {
       reportId,
-      ...req.body
-    });
+      stepNumber: req.body.stepNumber ? parseInt(req.body.stepNumber, 10) : undefined,
+      description: req.body.description,
+      category: req.body.category,
+    };
+
+    const validationResult = uploadImageSchema.safeParse(validationData);
 
     if (!validationResult.success) {
       return res.status(400).json({ error: 'Invalid request data', details: validationResult.error });
@@ -68,26 +72,24 @@ router.post('/api/reports/:reportId/images', requireAuth, upload.single('image')
       return res.status(404).json({ error: 'Report not found or access denied' });
     }
 
-    // Upload to Google Drive
-    const uploadResult = await googleDriveService.uploadImage(
-      userId,
+    // Upload to S3
+    const uploadResult = await s3Service.uploadImage(
+      reportId,
       imageFile.buffer,
       imageFile.originalname,
-      imageFile.mimetype,
-      reportId,
-      report.title
+      imageFile.mimetype
     );
 
     // Save metadata to database
     const imageRecord = await ReportImage.create({
       reportId: report._id,
       stepNumber,
-      filename: uploadResult.filename,
+      filename: imageFile.originalname, // Keep original filename for display
       originalFilename: imageFile.originalname,
       fileSize: imageFile.size,
       mimeType: imageFile.mimetype,
-      googleDriveId: uploadResult.googleDriveId,
-      googleDriveUrl: uploadResult.webViewUrl,
+      s3Key: uploadResult.s3Key,
+      s3Url: uploadResult.s3Url,
       publicUrl: uploadResult.publicUrl,
       uploadOrder: await getNextUploadOrder(reportId),
       description,
@@ -102,8 +104,8 @@ router.post('/api/reports/:reportId/images', requireAuth, upload.single('image')
       originalFilename: imageRecord.originalFilename,
       fileSize: imageRecord.fileSize,
       mimeType: imageRecord.mimeType,
-      googleDriveId: imageRecord.googleDriveId,
-      googleDriveUrl: imageRecord.googleDriveUrl,
+      s3Key: imageRecord.s3Key,
+      s3Url: imageRecord.s3Url,
       publicUrl: imageRecord.publicUrl,
       uploadOrder: imageRecord.uploadOrder,
       description: imageRecord.description,
@@ -147,8 +149,8 @@ router.get('/api/reports/:reportId/images', requireAuth, async (req, res) => {
       originalFilename: img.originalFilename,
       fileSize: img.fileSize,
       mimeType: img.mimeType,
-      googleDriveId: img.googleDriveId,
-      googleDriveUrl: img.googleDriveUrl,
+      s3Key: img.s3Key,
+      s3Url: img.s3Url,
       publicUrl: img.publicUrl,
       uploadOrder: img.uploadOrder,
       description: img.description,
@@ -190,12 +192,12 @@ router.delete('/api/reports/:reportId/images/:imageId', requireAuth, async (req,
       return res.status(404).json({ error: 'Image not found' });
     }
 
-    // Delete from Google Drive
+    // Delete from S3
     try {
-      await googleDriveService.deleteImage(userId, image.googleDriveId);
+      await s3Service.deleteImage(image.s3Key);
     } catch (error) {
-      console.error('Failed to delete from Google Drive:', error);
-      // Continue with database deletion even if Drive deletion fails
+      console.error('Failed to delete from S3:', error);
+      // Continue with database deletion even if S3 deletion fails
     }
 
     // Delete from database
@@ -250,8 +252,8 @@ router.patch('/api/reports/:reportId/images/:imageId', requireAuth, async (req, 
       originalFilename: image.originalFilename,
       fileSize: image.fileSize,
       mimeType: image.mimeType,
-      googleDriveId: image.googleDriveId,
-      googleDriveUrl: image.googleDriveUrl,
+      s3Key: image.s3Key,
+      s3Url: image.s3Url,
       publicUrl: image.publicUrl,
       uploadOrder: image.uploadOrder,
       description: image.description,
@@ -265,31 +267,19 @@ router.patch('/api/reports/:reportId/images/:imageId', requireAuth, async (req, 
   }
 });
 
-// Get report folder URL
-router.get('/api/reports/:reportId/folder-url', requireAuth, async (req, res) => {
+// S3 health check endpoint
+router.get('/api/s3/health', requireAuth, async (req, res) => {
   try {
-    const { reportId } = req.params;
-    const userId = req.user._id.toString();
-
-    // Check if report exists and user has access
-    const report = await Report.findOne({ 
-      _id: reportId,
-      $or: [
-        { userId: req.user._id },
-        { assignedEngineer: req.user._id }
-      ]
-    });
-
-    if (!report) {
-      return res.status(404).json({ error: 'Report not found or access denied' });
-    }
-
-    const folderUrl = await googleDriveService.getReportFolderUrl(userId, reportId, report.title);
+    const isHealthy = await s3Service.healthCheck();
     
-    res.json({ folderUrl });
+    if (isHealthy) {
+      res.json({ status: 'healthy', message: 'S3 service is configured and accessible' });
+    } else {
+      res.status(500).json({ status: 'unhealthy', message: 'S3 service is not accessible' });
+    }
   } catch (error) {
-    console.error('Error getting folder URL:', error);
-    res.status(500).json({ error: 'Failed to get folder URL' });
+    console.error('S3 health check error:', error);
+    res.status(500).json({ status: 'error', message: 'S3 health check failed' });
   }
 });
 

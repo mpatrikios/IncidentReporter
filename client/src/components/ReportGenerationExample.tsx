@@ -50,7 +50,7 @@ Interior areas were inspected with the following findings:
 Based on our inspection, the property is in generally good condition with only minor maintenance items noted.`,
     images: images.map(img => ({
       originalFilename: img.originalFilename,
-      googleDriveUrl: img.googleDriveUrl,
+      s3Url: img.s3Url,
       publicUrl: img.publicUrl,
       fileSize: img.fileSize,
       description: img.description,
