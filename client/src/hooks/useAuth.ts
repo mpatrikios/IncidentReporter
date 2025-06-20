@@ -72,7 +72,16 @@ export function useLogout() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      // Clear all cached queries
+      queryClient.clear();
+      // Redirect to login page after successful logout
+      window.location.href = "/login";
+    },
+    onError: (error) => {
+      console.error("Logout failed:", error);
+      // Even if logout fails on the server, clear local state and redirect
+      queryClient.clear();
+      window.location.href = "/login";
     },
   });
 }
