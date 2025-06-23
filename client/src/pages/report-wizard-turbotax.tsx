@@ -254,7 +254,9 @@ export default function ReportWizardTurboTax() {
       }
       
       // Close the event source
-      eventSource.close();
+      if (!isCompleted) {
+        eventSource.close();
+      }
     } catch (error) {
       toast({
         title: "Generation Failed",
