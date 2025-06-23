@@ -4,12 +4,12 @@ import { apiRequest } from "@/lib/queryClient";
 export interface AuthUser {
   id: number;
   email: string;
-  username: string;
-  firstName: string | null;
-  lastName: string | null;
-  fullName: string | null;
-  title: string | null;
-  isEngineer: boolean | null;
+  name: string;
+  givenName?: string;
+  familyName?: string;
+  title?: string;
+  isEngineer: boolean;
+  picture?: string;
   createdAt: Date | null;
   updatedAt: Date | null;
 }

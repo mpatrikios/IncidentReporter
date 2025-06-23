@@ -181,9 +181,9 @@ export default function DashboardTurboTax() {
                 }}
               >
                 <Avatar sx={{ width: 32, height: 32, bgcolor: '#0070BA', mr: 1 }}>
-                  {user?.fullName?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                  {user?.name?.charAt(0) || user?.givenName?.charAt(0) || user?.email?.charAt(0) || 'U'}
                 </Avatar>
-                {user?.fullName || user?.username}
+                {user?.name || user?.givenName || user?.email?.split('@')[0]}
               </Button>
 
               <Menu
@@ -196,7 +196,7 @@ export default function DashboardTurboTax() {
               >
                 <Box px={2} py={1}>
                   <Typography variant="body2" fontWeight={600}>
-                    {user?.fullName || user?.username}
+                    {user?.name || user?.givenName || user?.email?.split('@')[0]}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {user?.email}
@@ -222,7 +222,7 @@ export default function DashboardTurboTax() {
             gutterBottom
             sx={{ color: '#2C3E50' }}
           >
-            Welcome back, {user?.firstName || user?.username}
+            Welcome back, {user?.name || user?.givenName || user?.email?.split('@')[0]}
           </Typography>
           <Typography 
             variant="body1" 

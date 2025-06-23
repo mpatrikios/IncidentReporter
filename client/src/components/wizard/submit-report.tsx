@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, FileText, Save, Clock } from "lucide-react";
+import { CheckCircle, FileText, Save, Clock, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface SubmitReportProps {
   reportId: string;
@@ -20,6 +21,7 @@ export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle 
   const [reportTitle, setReportTitle] = useState(initialTitle || "");
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
+  const [showChargeConfirmation, setShowChargeConfirmation] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -48,13 +50,18 @@ export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle 
   }, [initialTitle]);
 
 
-  const handleGenerateDoc = async () => {
+  const handleGenerateDocClick = () => {
+    setShowChargeConfirmation(true);
+  };
+
+  const handleConfirmGeneration = async () => {
+    setShowChargeConfirmation(false);
     setIsGeneratingDoc(true);
     try {
       await apiRequest("POST", `/api/reports/${reportId}/generate-doc`);
       toast({
         title: "Document Generated",
-        description: "Google Doc has been generated successfully.",
+        description: "Google Doc has been generated successfully. You have been charged $300.",
       });
     } catch (error) {
       toast({
@@ -193,7 +200,7 @@ export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle 
             Generate a Google Doc version of your report for easy sharing and printing.
           </p>
           <Button
-            onClick={handleGenerateDoc}
+            onClick={handleGenerateDocClick}
             disabled={!allSectionsComplete || isGeneratingDoc}
             className="w-full"
             variant="outline"
@@ -206,7 +213,8 @@ export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle 
             ) : (
               <>
                 <FileText className="mr-2 h-4 w-4" />
-                Generate Google Doc
+                <DollarSign className="mr-1 h-4 w-4" />
+                Generate Google Doc ($300)
               </>
             )}
           </Button>
@@ -291,6 +299,17 @@ export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle 
           </div>
         </CardContent>
       </Card>
+
+      {/* Charge Confirmation Dialog */}
+      <ConfirmationDialog
+        open={showChargeConfirmation}
+        onOpenChange={setShowChargeConfirmation}
+        title="Confirm Report Generation"
+        description="Generating this report will cost $300. This charge will be applied to your account. Do you want to proceed?"
+        confirmText="Yes, Generate Report ($300)"
+        cancelText="Cancel"
+        onConfirm={handleConfirmGeneration}
+      />
     </div>
   );
 }

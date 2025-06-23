@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Download, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Download, Loader2, AlertCircle, DollarSign } from 'lucide-react';
 import { wordDocumentService } from '@/services/wordDocumentService';
 import { useToast } from '@/hooks/use-toast';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 interface DocumentGenerationProps {
   reportData: {
@@ -39,16 +40,21 @@ export function DocumentGeneration({
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showChargeConfirmation, setShowChargeConfirmation] = useState(false);
   const { toast } = useToast();
 
-  const handleGenerate = async () => {
-    setError(null);
-    
+  const handleGenerateClick = () => {
     if (documentFormat === 'google-docs') {
-      await onGoogleDocsGenerate(includePhotosInline);
+      setShowChargeConfirmation(true);
     } else {
-      await generateWordDocument();
+      generateWordDocument();
     }
+  };
+
+  const handleConfirmGeneration = async () => {
+    setShowChargeConfirmation(false);
+    setError(null);
+    await onGoogleDocsGenerate(includePhotosInline);
   };
 
   const generateWordDocument = async () => {
@@ -251,13 +257,14 @@ export function DocumentGeneration({
         <div className="flex gap-2">
           {!isGenerating && !externalIsGenerating && (
             <Button 
-              onClick={handleGenerate}
+              onClick={handleGenerateClick}
               className="flex-1"
             >
               {documentFormat === 'google-docs' ? (
                 <>
                   <FileText className="mr-2 h-4 w-4" />
-                  Generate Google Doc
+                  <DollarSign className="mr-1 h-4 w-4" />
+                  Generate Google Doc ($300)
                 </>
               ) : (
                 <>
@@ -293,15 +300,28 @@ export function DocumentGeneration({
               <p>• Document will be created in your Google Drive</p>
               <p>• Requires Google account authentication</p>
               <p>• Can be edited and shared online</p>
+              <p>• <strong>$300 charge applies for Google Doc generation</strong></p>
             </>
           ) : (
             <>
               <p>• Document will be downloaded to your device</p>
               <p>• No account required</p>
               <p>• Works offline once downloaded</p>
+              <p>• No additional charges</p>
             </>
           )}
         </div>
+
+        {/* Charge Confirmation Dialog */}
+        <ConfirmationDialog
+          open={showChargeConfirmation}
+          onOpenChange={setShowChargeConfirmation}
+          title="Confirm Google Doc Generation"
+          description="Generating a Google Doc will cost $300. This charge will be applied to your account. Do you want to proceed?"
+          confirmText="Yes, Generate Doc ($300)"
+          cancelText="Cancel"
+          onConfirm={handleConfirmGeneration}
+        />
       </CardContent>
     </Card>
   );

@@ -120,7 +120,7 @@ export default function Home() {
                     </div>
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-semibold text-gray-900">
-                        {user?.fullName || user?.username}
+                        {user?.name}
                       </span>
                       {user?.isEngineer && (
                         <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs px-2 py-0.5 w-fit">
@@ -133,7 +133,7 @@ export default function Home() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 bg-white border-2 border-gray-200 shadow-lg">
                   <div className="px-4 py-4">
-                    <p className="text-sm font-semibold text-gray-900">{user?.fullName || user?.username}</p>
+                    <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
                     <p className="text-xs text-gray-600">{user?.email}</p>
                   </div>
                   <DropdownMenuSeparator className="bg-gray-200" />
@@ -157,7 +157,7 @@ export default function Home() {
         <div className="container mx-auto px-6 py-12">
           <div className="relative z-10 max-w-4xl">
             <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Welcome back, <span className="text-blue-700">{user?.firstName || user?.username}</span>
+              Welcome back, <span className="text-blue-700">{user?.givenName || user?.name}</span>
             </h2>
             <p className="text-xl text-gray-700 mb-8 max-w-2xl">
               Streamline your civil engineering documentation with intelligent automation and modern workflows

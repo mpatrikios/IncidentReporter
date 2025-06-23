@@ -153,11 +153,11 @@ export default function Home(props?: any) {
           >
             <Stack direction="row" alignItems="center" spacing={1.5}>
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.light' }}>
-                {user?.fullName?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                {user?.name?.charAt(0) || 'U'}
               </Avatar>
               <Box textAlign="left">
                 <Typography variant="body2" fontWeight={600}>
-                  {user?.fullName || user?.username}
+                  {user?.name}
                 </Typography>
                 {user?.isEngineer && (
                   <Chip label="Licensed Engineer" size="small" color="primary" sx={{ height: 20 }} />
@@ -176,7 +176,7 @@ export default function Home(props?: any) {
           >
             <Box px={2} py={1}>
               <Typography variant="body2" fontWeight={600}>
-                {user?.fullName || user?.username}
+                {user?.name}
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {user?.email}
@@ -207,7 +207,7 @@ export default function Home(props?: any) {
             gutterBottom
             sx={{ fontSize: { xs: '2rem', md: '3rem' } }}
           >
-            Welcome back, <Box component="span" color="primary.main">{user?.firstName || user?.username}</Box>
+            Welcome back, <Box component="span" color="primary.main">{user?.givenName || user?.name}</Box>
           </Typography>
           <Typography variant="h5" color="text.secondary" fontWeight={400} gutterBottom>
             Streamline your civil engineering documentation with intelligent automation

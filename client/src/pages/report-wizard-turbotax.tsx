@@ -503,7 +503,7 @@ export default function ReportWizardTurboTax() {
                 }}
               >
                 <Avatar sx={{ width: 32, height: 32, bgcolor: '#0070BA' }}>
-                  {user?.fullName?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                  {user?.name?.charAt(0) || 'U'}
                 </Avatar>
               </Button>
 
@@ -515,7 +515,7 @@ export default function ReportWizardTurboTax() {
               >
                 <Box px={2} py={1}>
                   <Typography variant="body2" fontWeight={600}>
-                    {user?.fullName || user?.username}
+                    {user?.name}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {user?.email}

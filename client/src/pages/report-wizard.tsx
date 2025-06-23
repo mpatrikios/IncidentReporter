@@ -244,7 +244,7 @@ export default function ReportWizard() {
                     </div>
                     <div className="flex flex-col items-start">
                       <span className="profile-display-name">
-                        {user?.fullName || user?.username}
+                        {user?.name}
                       </span>
                       {user?.isEngineer && (
                         <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs px-2 py-0.5 w-fit">
@@ -257,7 +257,7 @@ export default function ReportWizard() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="profile-dropdown-menu">
                   <div className="profile-info-section">
-                    <p className="profile-name">{user?.fullName || user?.username}</p>
+                    <p className="profile-name">{user?.name}</p>
                     <p className="profile-email">{user?.email}</p>
                   </div>
                   <DropdownMenuSeparator className="profile-menu-separator" />
