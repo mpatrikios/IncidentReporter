@@ -61,12 +61,13 @@ class WordDocumentService {
       );
 
       // Process and add report sections
-      const reportSections = await this.processReportSections(reportData, aiEnhanceText);
+      onProgress?.(10, 'Processing report sections...');
+      const reportSections = await this.processReportSections(reportData, aiEnhanceText, onProgress);
       sections.push(...reportSections);
 
       // Handle images
       if (images && images.length > 0) {
-        onProgress?.(20, 'Processing images...');
+        onProgress?.(80, 'Processing images...');
         
         if (includePhotosInline) {
           // Process images inline
@@ -79,7 +80,7 @@ class WordDocumentService {
         }
       }
 
-      onProgress?.(80, 'Creating document...');
+      onProgress?.(85, 'Creating document...');
 
       // Create the document
       const doc = new Document({
@@ -92,7 +93,7 @@ class WordDocumentService {
         title: title,
       });
 
-      onProgress?.(90, 'Packaging document...');
+      onProgress?.(95, 'Packaging document...');
 
       // Generate and save the document
       const blob = await Packer.toBlob(doc);
@@ -119,8 +120,29 @@ class WordDocumentService {
   /**
    * Process engineering report sections
    */
-  private async processReportSections(reportData: ReportData, aiEnhanceText?: boolean): Promise<Paragraph[]> {
+  private async processReportSections(reportData: ReportData, aiEnhanceText?: boolean, onProgress?: (progress: number, message: string) => void): Promise<Paragraph[]> {
     const sections: Paragraph[] = [];
+    
+    // Progress tracking
+    let currentProgress = 40; // Start after initial setup
+    const progressIncrement = 40 / 6; // We have 6 main sections
+    
+    const updateProgress = (sectionName: string) => {
+      currentProgress += progressIncrement;
+      onProgress?.(currentProgress, `Processing ${sectionName}...`);
+    };
+    
+    const processTextWithProgress = async (text: string | undefined, fieldType: string) => {
+      if (aiEnhanceText) {
+        // For AI enhancement, we want to show specific field progress
+        const aiProgress = (progress: number, message: string) => {
+          onProgress?.(currentProgress, message);
+        };
+        return await this.processText(text, fieldType, aiEnhanceText, aiProgress);
+      } else {
+        return await this.processText(text, fieldType, aiEnhanceText);
+      }
+    };
 
     // Assignment section
     if (reportData.projectInformation) {
@@ -181,7 +203,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(as.intervieweesNames, 'interviewees', aiEnhanceText),
+            text: await processTextWithProgress(as.intervieweesNames, 'interviewees'),
             spacing: { after: 200 },
           })
         );
@@ -196,7 +218,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(as.providedDocumentsTitles, 'documents', aiEnhanceText),
+            text: await processTextWithProgress(as.providedDocumentsTitles, 'documents'),
             spacing: { after: 200 },
           })
         );
@@ -205,6 +227,7 @@ class WordDocumentService {
 
     // Building System Description section
     if (reportData.buildingObservations) {
+      updateProgress('Building System');
       sections.push(
         new Paragraph({
           text: "BUILDING SYSTEM DESCRIPTION",
@@ -221,7 +244,7 @@ class WordDocumentService {
       if (bo.buildingSystemDescription) {
         sections.push(
           new Paragraph({
-            text: await this.processText(bo.buildingSystemDescription, 'building system', aiEnhanceText),
+            text: await processTextWithProgress(bo.buildingSystemDescription, 'building system'),
             spacing: { after: 240 },
           })
         );
@@ -230,6 +253,7 @@ class WordDocumentService {
 
     // Site Observations section
     if (reportData.buildingObservations) {
+      updateProgress('Site Observations');
       sections.push(
         new Paragraph({
           text: "SITE OBSERVATIONS",
@@ -253,7 +277,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(bo.exteriorObservations, 'exterior observations', aiEnhanceText),
+            text: await processTextWithProgress(bo.exteriorObservations, 'exterior observations'),
             spacing: { after: 200 },
           })
         );
@@ -268,7 +292,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(bo.interiorObservations, 'interior observations', aiEnhanceText),
+            text: await processTextWithProgress(bo.interiorObservations, 'interior observations'),
             spacing: { after: 200 },
           })
         );
@@ -283,7 +307,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(bo.otherSiteObservations, 'other observations', aiEnhanceText),
+            text: await processTextWithProgress(bo.otherSiteObservations, 'other observations'),
             spacing: { after: 200 },
           })
         );
@@ -292,6 +316,7 @@ class WordDocumentService {
 
     // Research section
     if (reportData.research) {
+      updateProgress('Research');
       sections.push(
         new Paragraph({
           text: "RESEARCH",
@@ -315,7 +340,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(r.weatherDataSummary, 'weather data', aiEnhanceText),
+            text: await processTextWithProgress(r.weatherDataSummary, 'weather data'),
             spacing: { after: 200 },
           })
         );
@@ -330,7 +355,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(r.corelogicHailSummary, 'hail analysis', aiEnhanceText),
+            text: await processTextWithProgress(r.corelogicHailSummary, 'hail analysis'),
             spacing: { after: 200 },
           })
         );
@@ -345,7 +370,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(r.corelogicWindSummary, 'wind analysis', aiEnhanceText),
+            text: await processTextWithProgress(r.corelogicWindSummary, 'wind analysis'),
             spacing: { after: 200 },
           })
         );
@@ -354,6 +379,7 @@ class WordDocumentService {
 
     // Discussion & Analysis section
     if (reportData.discussionAnalysis) {
+      updateProgress('Discussion & Analysis');
       sections.push(
         new Paragraph({
           text: "DISCUSSION & ANALYSIS",
@@ -377,7 +403,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(da.siteDiscussionAnalysis, 'site analysis', aiEnhanceText),
+            text: await processTextWithProgress(da.siteDiscussionAnalysis, 'site analysis'),
             spacing: { after: 200 },
           })
         );
@@ -392,7 +418,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(da.weatherDiscussionAnalysis, 'weather analysis', aiEnhanceText),
+            text: await processTextWithProgress(da.weatherDiscussionAnalysis, 'weather analysis'),
             spacing: { after: 200 },
           })
         );
@@ -407,7 +433,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(da.weatherImpactAnalysis, 'impact analysis', aiEnhanceText),
+            text: await processTextWithProgress(da.weatherImpactAnalysis, 'impact analysis'),
             spacing: { after: 200 },
           })
         );
@@ -422,7 +448,7 @@ class WordDocumentService {
         );
         sections.push(
           new Paragraph({
-            text: await this.processText(da.recommendationsAndDiscussion, 'recommendations', aiEnhanceText),
+            text: await processTextWithProgress(da.recommendationsAndDiscussion, 'recommendations'),
             spacing: { after: 200 },
           })
         );
@@ -431,6 +457,7 @@ class WordDocumentService {
 
     // Conclusions section
     if (reportData.conclusions) {
+      updateProgress('Conclusions');
       sections.push(
         new Paragraph({
           text: "CONCLUSIONS",
@@ -445,7 +472,7 @@ class WordDocumentService {
 
       sections.push(
         new Paragraph({
-          text: await this.processText(reportData.conclusions.conclusions, 'conclusions', aiEnhanceText),
+          text: await processTextWithProgress(reportData.conclusions.conclusions, 'conclusions'),
           spacing: { after: 240 },
         })
       );
@@ -457,7 +484,7 @@ class WordDocumentService {
   /**
    * Process text with AI enhancement if enabled
    */
-  private async processText(text: string | undefined, fieldType: string, aiEnhanceText?: boolean): Promise<string> {
+  private async processText(text: string | undefined, fieldType: string, aiEnhanceText?: boolean, onProgress?: (progress: number, message: string) => void): Promise<string> {
     if (!text || text.trim().length === 0) {
       return '';
     }
@@ -468,6 +495,9 @@ class WordDocumentService {
 
     if (hasBulletPoints && aiEnhanceText) {
       try {
+        // Show AI processing progress
+        onProgress?.(0, `AI enhancing ${fieldType}...`);
+        
         // Call AI enhancement API if available
         const response = await fetch('/api/ai/generate-text', {
           method: 'POST',
@@ -483,10 +513,14 @@ class WordDocumentService {
 
         if (response.ok) {
           const data = await response.json();
+          onProgress?.(0, `AI enhancement complete for ${fieldType}`);
           return data.generatedText || text;
+        } else {
+          onProgress?.(0, `AI enhancement failed for ${fieldType}, using original text`);
         }
       } catch (error) {
         console.warn(`Failed to enhance text for ${fieldType}, using original:`, error);
+        onProgress?.(0, `AI enhancement failed for ${fieldType}, using original text`);
       }
     }
 

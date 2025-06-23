@@ -513,17 +513,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate Google Doc from template
+  // Progress tracking endpoint
+  app.get("/api/reports/:id/generation-progress", requireAuth, (req, res) => {
+    const reportId = req.params.id;
+    
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Cache-Control'
+    });
+
+    // Store the response object for this report generation
+    const progressKey = `progress_${reportId}`;
+    if (!global.progressStreams) {
+      global.progressStreams = new Map();
+    }
+    global.progressStreams.set(progressKey, res);
+
+    // Send initial progress
+    res.write(`data: ${JSON.stringify({ progress: 0, message: 'Starting generation...' })}\n\n`);
+
+    // Clean up on client disconnect
+    req.on('close', () => {
+      global.progressStreams.delete(progressKey);
+    });
+  });
+
   app.post("/api/reports/:id/generate-doc", requireAuth, async (req, res) => {
     try {
       const reportId = req.params.id;
       const userId = (req.user as any)._id.toString();
       const { aiEnhanceText, includePhotosInline } = req.body;
       
+      // Helper function to send progress updates
+      const sendProgress = (progress: number, message: string) => {
+        const progressKey = `progress_${reportId}`;
+        if (global.progressStreams && global.progressStreams.has(progressKey)) {
+          const stream = global.progressStreams.get(progressKey);
+          stream.write(`data: ${JSON.stringify({ progress, message })}\n\n`);
+        }
+      };
+      
       console.log('DEBUG: Generate doc request for report:', reportId, 'user:', userId);
+      
+      sendProgress(10, 'Validating request...');
       
       if (!isValidObjectId(reportId)) {
         return res.status(400).json({ message: "Invalid report ID" });
       }
+      
+      sendProgress(20, 'Loading report data...');
       
       const report = await storage.getReport(reportId);
       
@@ -533,6 +574,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('DEBUG: Report found, checking user authentication...');
 
+      sendProgress(30, 'Initializing Google Docs service...');
+      
       // Import the Google Docs service
       const { googleDocsService } = await import('./services/googleDocsService.js');
 
@@ -580,19 +623,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
+      sendProgress(40, 'Preparing report content...');
+      
       // Generate report title
       const reportTitle = report.title || `Civil Engineering Report - ${reportData?.projectInformation?.insuredName || 'Unnamed'} - ${new Date().toLocaleDateString()}`;
 
+      sendProgress(50, aiEnhanceText ? 'Generating document with AI enhancement...' : 'Generating document...');
+      
       // Generate professional report using the new method
-      const googleDocId = await googleDocsService.createProfessionalReport(userId, reportData, reportTitle, aiEnhanceText);
+      const googleDocId = await googleDocsService.createProfessionalReport(userId, reportData, reportTitle, aiEnhanceText, sendProgress);
       
       if (!googleDocId) {
         throw new Error('Failed to generate document');
       }
 
+      sendProgress(95, 'Saving document information...');
+      
       const updatedReport = await storage.updateReport(reportId, {
         googleDocId: googleDocId,
       });
+
+      sendProgress(100, 'Document generation complete!');
+      
+      // Clean up the progress stream
+      const progressKey = `progress_${reportId}`;
+      if (global.progressStreams && global.progressStreams.has(progressKey)) {
+        const stream = global.progressStreams.get(progressKey);
+        stream.write(`data: ${JSON.stringify({ progress: 100, message: 'Complete!', completed: true })}\n\n`);
+        stream.end();
+        global.progressStreams.delete(progressKey);
+      }
 
       res.json({ 
         message: "Google Doc generated successfully", 

@@ -37,7 +37,7 @@ class AITextService {
     const prompt = this.buildPrompt(bulletPoints, fieldType, context);
 
     try {
-      const completion = await this.openai.chat.completions.create({
+      const completion = await this.createCompletionWithRetry({
         model: 'gpt-4o-mini', // Cost-effective model for text generation
         messages: [
           {
@@ -60,10 +60,67 @@ class AITextService {
       }
 
       return generatedText.trim();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating text with OpenAI:', error);
+      
+      // Handle specific error types
+      if (error.code === 'rate_limit_exceeded') {
+        const retryAfter = error.headers?.['retry-after'] || '20';
+        throw new Error(`Rate limit exceeded. Please wait ${retryAfter} seconds and try again.`);
+      }
+      
+      if (error.status === 429) {
+        throw new Error('OpenAI service is temporarily overloaded. Please try again in a few moments.');
+      }
+      
+      if (error.status === 401) {
+        throw new Error('OpenAI API authentication failed. Please check your API key configuration.');
+      }
+      
       throw new Error('Failed to generate paragraph. Please try again.');
     }
+  }
+
+  private async createCompletionWithRetry(params: any, maxRetries: number = 3): Promise<any> {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await this.openai.chat.completions.create(params);
+      } catch (error: any) {
+        lastError = error;
+        
+        // Don't retry for certain error types
+        if (error.status === 401 || error.status === 400) {
+          throw error;
+        }
+        
+        // For rate limiting, wait for the specified retry-after time
+        if (error.code === 'rate_limit_exceeded' || error.status === 429) {
+          const retryAfter = error.headers?.['retry-after'] || error.headers?.get?.('retry-after');
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 1000;
+          
+          console.log(`Rate limit hit, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+          
+          if (attempt < maxRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
+          }
+        }
+        
+        // For other errors, use exponential backoff
+        if (attempt < maxRetries - 1) {
+          const waitTime = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+          console.log(`API error, retrying in ${waitTime}ms: ${error.message}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        
+        throw error;
+      }
+    }
+    
+    throw lastError;
   }
 
   private buildPrompt(bulletPoints: string, fieldType: string, context?: string): string {
