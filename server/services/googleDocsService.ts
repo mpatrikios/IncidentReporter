@@ -125,7 +125,7 @@ class GoogleDocsService {
   /**
    * Creates a professional engineering report using the JSON template
    */
-  public async createProfessionalReport(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false): Promise<string | null> {
+  public async createProfessionalReport(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false, onProgress?: (progress: number, message: string) => void): Promise<string | null> {
     if (!this.template) {
       throw new Error('EFI report template not loaded');
     }
@@ -140,6 +140,8 @@ class GoogleDocsService {
     try {
       console.log('DEBUG: Creating document with template:', this.template.documentSettings.title);
 
+      onProgress?.(55, 'Authenticating with Google Docs...');
+
       // Create a new document
       const createResponse = await docs.documents.create({
         requestBody: {
@@ -153,10 +155,15 @@ class GoogleDocsService {
         throw new Error('Failed to create document');
       }
 
+      onProgress?.(65, 'Document created, processing content...');
+
       // Process template data and build document
-      const processedData = await this.processTemplateData(reportData, aiEnhanceText);
+      const processedData = await this.processTemplateData(reportData, aiEnhanceText, onProgress);
+      
+      onProgress?.(85, 'Building document structure...');
       const requests = await this.buildDocumentFromTemplate(processedData);
 
+      onProgress?.(90, 'Applying formatting and finalizing...');
       // Execute all formatting requests in batches
       await this.executeBatchRequests(docs, documentId, requests);
 
@@ -172,7 +179,7 @@ class GoogleDocsService {
   /**
    * Process template data and replace placeholders
    */
-  private async processTemplateData(reportData: ReportData, aiEnhanceText: boolean): Promise<{ [key: string]: string }> {
+  private async processTemplateData(reportData: ReportData, aiEnhanceText: boolean, onProgress?: (progress: number, message: string) => void): Promise<{ [key: string]: string }> {
     if (!this.template) {
       throw new Error('Template not loaded');
     }
@@ -212,8 +219,12 @@ class GoogleDocsService {
 
     console.log(`DEBUG AI: Processing template with aiEnhanceText=${aiEnhanceText}, isConfigured=${aiTextService.isConfigured()}`);
     
+    const placeholderEntries = Object.entries(this.template.placeholders);
+    const totalPlaceholders = placeholderEntries.length;
+    let processedCount = 0;
+    
     // Process each placeholder
-    for (const [placeholderKey, placeholderConfig] of Object.entries(this.template.placeholders)) {
+    for (const [placeholderKey, placeholderConfig] of placeholderEntries) {
       let value = placeholderConfig.default;
 
       if (placeholderConfig.source === 'dynamic') {
@@ -235,12 +246,27 @@ class GoogleDocsService {
         }
 
         if (sourceValue && typeof sourceValue === 'string' && sourceValue.trim()) {
+          // Check if this field will be AI processed
+          const bulletPointPattern = /^[\s]*[•\-\*]|\d+\./gm;
+          const hasBulletPoints = bulletPointPattern.test(sourceValue);
+          
+          if (hasBulletPoints && aiEnhanceText && aiTextService.isConfigured()) {
+            onProgress?.(68 + (processedCount / totalPlaceholders) * 15, `AI enhancing ${placeholderKey.replace(/_/g, ' ')}...`);
+          }
+          
           // Process text through AI if needed
           value = await processText(sourceValue, placeholderKey);
         }
       }
 
       processedData[placeholderKey] = value || placeholderConfig.default;
+      processedCount++;
+      
+      // Update progress
+      if (processedCount % 5 === 0 || processedCount === totalPlaceholders) {
+        const progressPercent = 68 + (processedCount / totalPlaceholders) * 15;
+        onProgress?.(progressPercent, `Processing content... (${processedCount}/${totalPlaceholders})`);
+      }
     }
 
     return processedData;

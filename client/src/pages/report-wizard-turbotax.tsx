@@ -193,12 +193,14 @@ export default function ReportWizardTurboTax() {
     }
     if (currentStep < FORM_STEPS.length) {
       setCurrentStep(currentStep + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -218,20 +220,23 @@ export default function ReportWizardTurboTax() {
     setShowGenerationOptions(false);
     
     try {
-      // Simulate progress updates
-      const progressSteps = [
-        { progress: 20, message: 'Compiling report data...' },
-        { progress: 40, message: 'Authenticating with Google...' },
-        { progress: 60, message: 'Creating document template...' },
-        { progress: 80, message: 'Inserting content and formatting...' },
-        { progress: 100, message: 'Finalizing document...' }
-      ];
+      // Start real-time progress tracking
+      const eventSource = new EventSource(`/api/reports/${reportId}/generation-progress`);
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setGenerationProgress(data.progress);
+        setGenerationMessage(data.message);
+        
+        if (data.completed) {
+          eventSource.close();
+        }
+      };
 
-      for (const step of progressSteps) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setGenerationProgress(step.progress);
-        setGenerationMessage(step.message);
-      }
+      eventSource.onerror = (error) => {
+        console.error('EventSource failed:', error);
+        eventSource.close();
+      };
 
       const response = await apiRequest("POST", `/api/reports/${reportId}/generate-doc`, {
         aiEnhanceText,
@@ -247,6 +252,9 @@ export default function ReportWizardTurboTax() {
           description: "Your report has been generated successfully.",
         });
       }
+      
+      // Close the event source
+      eventSource.close();
     } catch (error) {
       toast({
         title: "Generation Failed",
@@ -291,6 +299,9 @@ export default function ReportWizardTurboTax() {
 
       // Import the word document service dynamically
       const { wordDocumentService } = await import('@/services/wordDocumentService');
+
+      setGenerationProgress(5);
+      setGenerationMessage('Analyzing document size and complexity...');
 
       // Check if client-side generation is feasible
       const canGenerateClientSide = await wordDocumentService.canGenerateClientSide(images);
@@ -637,7 +648,10 @@ export default function ReportWizardTurboTax() {
                       direction="row" 
                       alignItems="center" 
                       spacing={2}
-                      onClick={() => setCurrentStep(index + 1)}
+                      onClick={() => {
+                        setCurrentStep(index + 1);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                       sx={{
                         cursor: 'pointer',
                         borderRadius: 1,
@@ -810,6 +824,9 @@ export default function ReportWizardTurboTax() {
                     <Typography variant="caption" color="text.secondary">
                       Convert bullet points in long-form fields to polished, professional paragraphs
                     </Typography>
+                    <Typography variant="caption" color="warning.main" sx={{ fontStyle: 'italic' }}>
+                      Note: AI enhancement may take longer during peak usage times
+                    </Typography>
                   </Box>
                 }
               />
@@ -839,47 +856,58 @@ export default function ReportWizardTurboTax() {
             </Stack>
           </Box>
           
+          {/* Format Selection */}
+          <Typography variant="subtitle2" fontWeight={600} gutterBottom sx={{ color: '#2C3E50', mt: 3 }}>
+            Choose Format
+          </Typography>
+          
           <Stack spacing={2}>
             <Button
-              variant="outlined"
               fullWidth
-              startIcon={<CloudUpload />}
+              variant="outlined"
+              size="large"
               onClick={handleGenerateGoogleDoc}
-              sx={{ 
-                py: 2,
-                textAlign: 'left',
-                justifyContent: 'flex-start',
-              }}
+              sx={{ justifyContent: 'flex-start', px: 3, py: 2 }}
             >
-              <Box>
-                <Typography variant="body1" fontWeight={500}>
-                  Google Docs
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Create an editable Google Doc in your Drive
-                </Typography>
-              </Box>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ width: '100%' }}>
+                <img 
+                  src="https://www.gstatic.com/images/branding/product/2x/docs_48dp.png" 
+                  alt="Google Docs" 
+                  style={{ width: 32, height: 32 }}
+                />
+                <Box sx={{ textAlign: 'left' }}>
+                  <Typography variant="body1" fontWeight={500}>
+                    Google Docs
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Opens in your browser for easy sharing
+                  </Typography>
+                </Box>
+              </Stack>
             </Button>
             
             <Button
-              variant="outlined"
               fullWidth
-              startIcon={<GetApp />}
+              variant="outlined"
+              size="large"
               onClick={handleGenerateWordDoc}
-              sx={{ 
-                py: 2,
-                textAlign: 'left',
-                justifyContent: 'flex-start',
-              }}
+              sx={{ justifyContent: 'flex-start', px: 3, py: 2 }}
             >
-              <Box>
-                <Typography variant="body1" fontWeight={500}>
-                  Word Document
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Download as a .docx file
-                </Typography>
-              </Box>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ width: '100%' }}>
+                <img 
+                  src="https://upload.wikimedia.org/wikipedia/commons/f/fd/Microsoft_Office_Word_%282019%E2%80%93present%29.svg" 
+                  alt="Microsoft Word" 
+                  style={{ width: 32, height: 32 }}
+                />
+                <Box sx={{ textAlign: 'left' }}>
+                  <Typography variant="body1" fontWeight={500}>
+                    Microsoft Word
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Downloads to your computer
+                  </Typography>
+                </Box>
+              </Stack>
             </Button>
           </Stack>
         </DialogContent>
@@ -890,50 +918,101 @@ export default function ReportWizardTurboTax() {
         </DialogActions>
       </Dialog>
 
-      {/* Generation Progress Backdrop */}
-      <Backdrop
+      {/* Generation Progress Dialog */}
+      <Dialog
         open={isGeneratingDoc || isGeneratingWord}
-        sx={{ 
-          color: '#fff', 
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        }}
+        disableEscapeKeyDown
+        maxWidth="sm"
+        fullWidth
       >
-        <Card sx={{ p: 4, minWidth: 320, textAlign: 'center' }}>
-          <CardContent>
-            <CircularProgress 
-              variant="determinate" 
-              value={generationProgress} 
-              size={80}
-              sx={{ 
-                mb: 3,
-                color: '#00AA3B',
-              }}
-            />
-            <Typography variant="h6" fontWeight={500} gutterBottom>
-              {isGeneratingDoc ? 'Generating Google Doc' : 'Generating Word Document'}
+        <DialogContent>
+          <Stack spacing={3} sx={{ py: 2 }}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" fontWeight={600} component="span">
+                {isGeneratingDoc ? 'Generating Google Doc' : 'Generating Word Document'}
+              </Typography>
+              {(aiEnhanceText && generationProgress > 65) && (
+                <Chip 
+                  label="AI Enhanced" 
+                  size="small" 
+                  color="primary" 
+                  sx={{ 
+                    ml: 1,
+                    background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                    animation: 'pulse 2s ease-in-out infinite',
+                    '@keyframes pulse': {
+                      '0%': { transform: 'scale(1)', opacity: 1 },
+                      '50%': { transform: 'scale(1.05)', opacity: 0.8 },
+                      '100%': { transform: 'scale(1)', opacity: 1 }
+                    }
+                  }} 
+                />
+              )}
+            </Box>
+            
+            <Box sx={{ position: 'relative' }}>
+              <LinearProgress 
+                variant="determinate" 
+                value={generationProgress} 
+                sx={{ 
+                  height: 12, 
+                  borderRadius: 6,
+                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  '& .MuiLinearProgress-bar': {
+                    borderRadius: 6,
+                    background: 'linear-gradient(90deg, #4ECDC4, #45B7D1)',
+                    backgroundSize: '300% 100%',
+                    animation: 'shimmer 2s ease-in-out infinite',
+                  },
+                  '@keyframes shimmer': {
+                    '0%': { backgroundPosition: '-200% 0' },
+                    '100%': { backgroundPosition: '200% 0' }
+                  }
+                }}
+              />
+            </Box>
+            
+            <Box sx={{ textAlign: 'center' }}>
+              <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                {(aiEnhanceText && generationProgress > 50 && generationProgress < 85) && (
+                  <Box
+                    sx={{
+                      fontSize: '1.2rem',
+                      animation: 'spin 2s linear infinite',
+                      '@keyframes spin': {
+                        '0%': { transform: 'rotate(0deg)' },
+                        '100%': { transform: 'rotate(360deg)' }
+                      }
+                    }}
+                  >
+                    🤖
+                  </Box>
+                )}
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{
+                    fontWeight: aiEnhanceText && generationProgress > 50 && generationProgress < 85 ? 600 : 400,
+                    color: aiEnhanceText && generationProgress > 50 && generationProgress < 85 
+                      ? 'primary.main' 
+                      : 'text.secondary',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {generationMessage || 'Starting generation...'}
+                </Typography>
+              </Stack>
+            </Box>
+            
+            <Typography variant="caption" color="text.secondary" align="center">
+              {aiEnhanceText 
+                ? 'AI enhancement may take additional time for complex reports'
+                : 'This may take a minute for reports with many photos'
+              }
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {generationMessage}
-            </Typography>
-            <LinearProgress 
-              variant="determinate" 
-              value={generationProgress}
-              sx={{ 
-                width: '100%',
-                height: 6,
-                borderRadius: 3,
-                '& .MuiLinearProgress-bar': {
-                  backgroundColor: '#00AA3B',
-                },
-              }}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              {generationProgress}% complete
-            </Typography>
-          </CardContent>
-        </Card>
-      </Backdrop>
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

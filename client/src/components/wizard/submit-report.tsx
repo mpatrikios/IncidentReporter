@@ -88,10 +88,7 @@ export function SubmitReportStep({ reportId, onPrevious, formData, initialTitle 
         description: "Your report has been saved successfully.",
       });
 
-      // Navigate back to dashboard after successful save
-      setTimeout(() => {
-        setLocation("/");
-      }, 1000); // Small delay to show the success toast
+      // Stay on the same page after save
     } catch (error) {
       toast({
         title: "Save Failed", 
