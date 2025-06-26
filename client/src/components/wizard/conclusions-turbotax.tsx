@@ -2,6 +2,7 @@ import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { conclusionsSchema, type Conclusions } from "@shared/schema";
+import { UnifiedDocumentGeneration } from "@/components/UnifiedDocumentGeneration";
 import {
   Box,
   TextField,
@@ -582,20 +583,26 @@ export const ConclusionsStepTurboTax = forwardRef<StepRef<Conclusions>, Conclusi
                   {isSaving ? 'Saving Report...' : 'Save Complete Report'}
                 </Button>
                 
-                <Button
-                  variant="contained"
-                  size="large"
-                  startIcon={<Description />}
-                  onClick={() => setShowGenerationOptions(true)}
-                  disabled={!allSectionsComplete || !reportTitle.trim()}
-                  sx={{ 
-                    backgroundColor: '#0070BA',
-                    '&:hover': { backgroundColor: '#005A9A' },
-                    '&:disabled': { backgroundColor: '#E0E0E0' },
-                  }}
-                >
-                  Generate Report
-                </Button>
+                <UnifiedDocumentGeneration
+                  reportId={reportId || ''}
+                  reportTitle={reportTitle}
+                  getFormStepData={getFormStepData}
+                  trigger={
+                    <Button
+                      variant="contained"
+                      size="large"
+                      startIcon={<Description />}
+                      disabled={!allSectionsComplete || !reportTitle.trim()}
+                      sx={{ 
+                        backgroundColor: '#0070BA',
+                        '&:hover': { backgroundColor: '#005A9A' },
+                        '&:disabled': { backgroundColor: '#E0E0E0' },
+                      }}
+                    >
+                      Generate Report
+                    </Button>
+                  }
+                />
               </Stack>
             </CardContent>
           </Card>
