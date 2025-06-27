@@ -23,7 +23,6 @@ const generateWordSchema = z.object({
     fileSize: z.number(),
     description: z.string().optional(),
   })).default([]),
-  includePhotosInline: z.boolean().default(false),
   aiEnhanceText: z.boolean().default(false),
 });
 
@@ -40,7 +39,7 @@ router.post('/api/reports/generate-word', requireAuth, async (req, res) => {
       });
     }
 
-    const { title, reportData, images, includePhotosInline, aiEnhanceText } = validationResult.data;
+    const { title, reportData, images, aiEnhanceText } = validationResult.data;
 
     // Check if server-side generation is appropriate
     const shouldUseServer = wordGenerationService.shouldUseServerSide(images);
@@ -57,7 +56,6 @@ router.post('/api/reports/generate-word', requireAuth, async (req, res) => {
       title,
       reportData,
       images,
-      includePhotosInline,
       aiEnhanceText
     }, res);
 

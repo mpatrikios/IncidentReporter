@@ -2,6 +2,7 @@ import officegen from 'officegen';
 import { Response } from 'express';
 import axios from 'axios';
 import sharp from 'sharp';
+import { ReportImage as DBReportImage } from '../../shared/schema';
 
 interface ReportImage {
   originalFilename: string;
@@ -24,7 +25,6 @@ interface WordGenerationOptions {
   title: string;
   reportData: ReportData;
   images: ReportImage[];
-  includePhotosInline: boolean;
   aiEnhanceText?: boolean;
 }
 
@@ -33,7 +33,7 @@ class WordGenerationService {
    * Generate Word document on server-side
    */
   async generateDocument(options: WordGenerationOptions, res: Response): Promise<void> {
-    const { title, reportData, images, includePhotosInline, aiEnhanceText } = options;
+    const { title, reportData, images, aiEnhanceText } = options;
 
     try {
       // Create a new Word document
@@ -51,17 +51,15 @@ class WordGenerationService {
       titleObj.addLineBreak();
 
       // Process and add report sections
-      this.addReportSections(docx, reportData, aiEnhanceText);
+      this.addReportSections(docx, reportData, images, aiEnhanceText);
 
-      // Handle images
+      // Handle images - always embed photos inline
       if (images && images.length > 0) {
+        console.log('DEBUG: *** PROCESSING IMAGES - SHOULD ALWAYS USE INLINE ***');
+        console.log('DEBUG: Images array length:', images.length);
         docx.createP().addLineBreak();
-        
-        if (includePhotosInline) {
-          await this.addInlineImages(docx, images);
-        } else {
-          this.addImageReferences(docx, images);
-        }
+        await this.addInlineImages(docx, images);
+        console.log('DEBUG: *** FINISHED PROCESSING INLINE IMAGES ***');
       }
 
       // Set response headers
@@ -80,7 +78,7 @@ class WordGenerationService {
   /**
    * Add engineering report sections to document
    */
-  private addReportSections(docx: any, reportData: ReportData, aiEnhanceText?: boolean): void {
+  private addReportSections(docx: any, reportData: ReportData, images: ReportImage[], aiEnhanceText?: boolean): void {
     // Assignment section
     if (reportData.projectInformation) {
       const assignmentTitle = docx.createP();
@@ -137,7 +135,8 @@ class WordGenerationService {
       buildingTitle.addLineBreak();
 
       const buildingDesc = docx.createP();
-      buildingDesc.addText(reportData.buildingObservations.buildingSystemDescription);
+      const photoRef = this.getPhotoReferenceText(images);
+      buildingDesc.addText(reportData.buildingObservations.buildingSystemDescription + photoRef);
       buildingDesc.addLineBreak();
     }
 
@@ -154,7 +153,8 @@ class WordGenerationService {
         exteriorTitle.addText('Exterior Observations:', { bold: true });
         
         const exterior = docx.createP();
-        exterior.addText(bo.exteriorObservations);
+        const photoRef = this.getPhotoReferenceText(images);
+        exterior.addText(bo.exteriorObservations + photoRef);
         exterior.addLineBreak();
       }
 
@@ -163,7 +163,8 @@ class WordGenerationService {
         interiorTitle.addText('Interior Observations:', { bold: true });
         
         const interior = docx.createP();
-        interior.addText(bo.interiorObservations);
+        const photoRef = this.getPhotoReferenceText(images);
+        interior.addText(bo.interiorObservations + photoRef);
         interior.addLineBreak();
       }
 
@@ -301,23 +302,22 @@ class WordGenerationService {
    * Add inline images to document
    */
   private async addInlineImages(docx: any, images: ReportImage[]): Promise<void> {
+    console.log('DEBUG: addInlineImages called with', images.length, 'images');
+    
     // Add images section
     const imagesTitle = docx.createP();
-    imagesTitle.addText('Images', { bold: true, font_size: 18 });
+    imagesTitle.addText('Appendix A: Site Photographs', { bold: true, font_size: 18 });
     imagesTitle.addLineBreak();
 
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
       
       try {
-        // Add image caption
+        // Add image caption with Photo numbering
         const caption = docx.createP();
-        caption.addText(`Image ${i + 1}: ${image.originalFilename}`, { bold: true });
-        
-        if (image.description) {
-          caption.addLineBreak();
-          caption.addText(image.description);
-        }
+        const photoText = `Photo ${i + 1}: ${image.description || image.originalFilename}`;
+        console.log('DEBUG: Adding inline photo:', photoText);
+        caption.addText(photoText, { bold: true });
         caption.addLineBreak();
 
         // Download and add image
@@ -347,30 +347,41 @@ class WordGenerationService {
   }
 
   /**
+   * Get photo reference text for photos (simplified version without database lookup)
+   */
+  private getPhotoReferenceText(images: ReportImage[]): string {
+    console.log('DEBUG: Word service generating photo reference for', images.length, 'images');
+    
+    if (images.length === 0) return '';
+    
+    if (images.length === 1) {
+      return ` (Photo 1)`;
+    } else {
+      return ` (Photos 1-${images.length})`;
+    }
+  }
+
+  /**
    * Add image references to document
    */
   private addImageReferences(docx: any, images: ReportImage[]): void {
+    console.log('DEBUG: addImageReferences called with', images.length, 'images');
+    
     // Add references section
     const refsTitle = docx.createP();
-    refsTitle.addText('Referenced Images', { bold: true, font_size: 18 });
+    refsTitle.addText('Appendix A: Site Photographs', { bold: true, font_size: 18 });
     refsTitle.addLineBreak();
 
     images.forEach((image, index) => {
       const ref = docx.createP();
-      ref.addText(`${index + 1}. ${image.originalFilename}`, { bold: true });
-      
-      if (image.description) {
-        ref.addLineBreak();
-        ref.addText(`   Description: ${image.description}`);
-      }
-      
-      if (image.s3Url || image.publicUrl) {
-        ref.addLineBreak();
-        ref.addText(`   Link: ${image.publicUrl || image.s3Url}`);
-      }
-      
+      // Use Photo numbering instead of just numbered list
+      const photoText = `Photo ${index + 1}: ${image.description || image.originalFilename}`;
+      console.log('DEBUG: Adding photo reference:', photoText);
+      ref.addText(photoText);
       ref.addLineBreak();
     });
+    
+    console.log('DEBUG: addImageReferences completed');
   }
 
   /**

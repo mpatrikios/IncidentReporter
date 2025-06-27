@@ -631,7 +631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sendProgress(50, aiEnhanceText ? 'Generating document with AI enhancement...' : 'Generating document...');
       
       // Generate professional report using the new method
-      const googleDocId = await googleDocsService.createProfessionalReport(userId, reportData, reportTitle, aiEnhanceText, sendProgress);
+      const googleDocId = await googleDocsService.createProfessionalReport(userId, reportData, reportTitle, reportId, aiEnhanceText, sendProgress);
       
       if (!googleDocId) {
         throw new Error('Failed to generate document');

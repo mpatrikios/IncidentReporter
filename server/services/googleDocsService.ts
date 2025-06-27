@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { storage } from '../storage';
 import { aiTextService } from './aiTextService';
+import { ReportImage } from '../../shared/schema';
 import fs from 'fs';
 import path from 'path';
 
@@ -125,7 +126,14 @@ class GoogleDocsService {
   /**
    * Creates a professional engineering report using the JSON template
    */
-  public async createProfessionalReport(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false, onProgress?: (progress: number, message: string) => void): Promise<string | null> {
+  public async createProfessionalReport(userId: string, reportData: ReportData, reportTitle: string, reportId: string, aiEnhanceText: boolean = false, onProgress?: (progress: number, message: string) => void): Promise<string | null> {
+    console.log('=== STARTING DOCUMENT GENERATION ===');
+    console.log('DEBUG: createProfessionalReport called with:');
+    console.log('  - userId:', userId);
+    console.log('  - reportTitle:', reportTitle);
+    console.log('  - reportId:', reportId);
+    console.log('  - aiEnhanceText:', aiEnhanceText);
+    
     if (!this.template) {
       throw new Error('EFI report template not loaded');
     }
@@ -158,7 +166,7 @@ class GoogleDocsService {
       onProgress?.(65, 'Document created, processing content...');
 
       // Process template data and build document
-      const processedData = await this.processTemplateData(reportData, aiEnhanceText, onProgress);
+      const processedData = await this.processTemplateData(reportData, reportId, aiEnhanceText, onProgress);
       
       onProgress?.(85, 'Building document structure...');
       const requests = await this.buildDocumentFromTemplate(processedData);
@@ -179,12 +187,20 @@ class GoogleDocsService {
   /**
    * Process template data and replace placeholders
    */
-  private async processTemplateData(reportData: ReportData, aiEnhanceText: boolean, onProgress?: (progress: number, message: string) => void): Promise<{ [key: string]: string }> {
+  private async processTemplateData(reportData: ReportData, reportId: string, aiEnhanceText: boolean, onProgress?: (progress: number, message: string) => void): Promise<{ [key: string]: string }> {
     if (!this.template) {
       throw new Error('Template not loaded');
     }
 
     const processedData: { [key: string]: string } = {};
+
+    // Process photos once and cache the results
+    console.log('=== STARTING PHOTO PROCESSING ===');
+    console.log('DEBUG: About to call processPhotoReferences with reportId:', reportId);
+    const photoReferences = await this.processPhotoReferences(reportId, reportData);
+    console.log('DEBUG: Photo processing completed. Found references for:', Object.keys(photoReferences));
+    console.log('DEBUG: Photo references content:', JSON.stringify(photoReferences, null, 2));
+    console.log('=== PHOTO PROCESSING COMPLETE ===');
 
     // Helper function to process text and generate paragraphs from bullet points if needed
     const processText = async (text: string | undefined, fieldType: string): Promise<string> => {
@@ -235,6 +251,25 @@ class GoogleDocsService {
             month: 'long',
             day: 'numeric'
           });
+        } else if (placeholderKey === 'site_photographs_appendix') {
+          console.log('=== PROCESSING SITE_PHOTOGRAPHS_APPENDIX PLACEHOLDER ===');
+          console.log('DEBUG: photoReferences keys available:', Object.keys(photoReferences));
+          console.log('DEBUG: photoReferences.site_photographs_appendix:', photoReferences.site_photographs_appendix);
+          console.log('DEBUG: placeholderConfig.default:', placeholderConfig.default);
+          
+          // Use cached photo references for appendix
+          value = photoReferences.site_photographs_appendix || placeholderConfig.default;
+          console.log('DEBUG: Final value for site_photographs_appendix:', value);
+          
+          // TEMPORARY TEST: Override with test content to verify pipeline works
+          if (photoReferences.site_photographs_appendix) {
+            value = 'PHOTO PROCESSING WORKING!\n\n' + photoReferences.site_photographs_appendix;
+            console.log('DEBUG: Overriding with test content - WORKING case');
+          } else {
+            value = 'PHOTO PROCESSING NOT WORKING - No photos found or processed';
+            console.log('DEBUG: Overriding with test content - NOT WORKING case');
+          }
+          console.log('=== SITE_PHOTOGRAPHS_APPENDIX PROCESSING COMPLETE ===');
         }
       } else {
         // Extract value from report data using dot notation
@@ -255,7 +290,19 @@ class GoogleDocsService {
           }
           
           // Process text through AI if needed
-          value = await processText(sourceValue, placeholderKey);
+          let processedText = await processText(sourceValue, placeholderKey);
+          
+          // Add photo references for observation fields
+          if (placeholderKey === 'building_system_description' || 
+              placeholderKey === 'exterior_observations' || 
+              placeholderKey === 'interior_observations') {
+            if (photoReferences[placeholderKey]) {
+              // Use the version with photo references
+              processedText = photoReferences[placeholderKey];
+            }
+          }
+          
+          value = processedText;
         }
       }
 
@@ -270,6 +317,105 @@ class GoogleDocsService {
     }
 
     return processedData;
+  }
+
+  /**
+   * Process photos and generate photo references for sections
+   */
+  private async processPhotoReferences(reportId: string, reportData: ReportData): Promise<{ [key: string]: string }> {
+    try {
+      console.log('DEBUG: processPhotoReferences called with reportId:', reportId, 'type:', typeof reportId);
+      
+      // Get all photos for this report, sorted by upload order
+      const allPhotos = await ReportImage.find({ reportId }).sort({ uploadOrder: 1 });
+      console.log('DEBUG: Found', allPhotos.length, 'photos for report', reportId);
+      
+      if (allPhotos.length > 0) {
+        console.log('DEBUG: First photo:', {
+          id: allPhotos[0]._id,
+          originalFilename: allPhotos[0].originalFilename,
+          category: allPhotos[0].category,
+          uploadOrder: allPhotos[0].uploadOrder
+        });
+      }
+      
+      if (allPhotos.length === 0) {
+        console.log('DEBUG: No photos found, returning empty object');
+        return {};
+      }
+
+      // Create photo number mapping
+      const photoReferences: { [key: string]: string } = {};
+      let photoNumber = 1;
+      
+      // Group photos by category for section-specific references
+      const photosByCategory = {
+        building: [] as Array<any>,
+        exterior: [] as Array<any>,
+        interior: [] as Array<any>,
+        documents: [] as Array<any>,
+        other: [] as Array<any>
+      };
+
+      // Assign sequential numbers and group by category
+      const photosWithNumbers = allPhotos.map(photo => ({
+        ...photo.toObject(),
+        photoNumber: photoNumber++
+      }));
+
+      photosWithNumbers.forEach(photo => {
+        const category = photo.category || 'other';
+        if (photosByCategory[category as keyof typeof photosByCategory]) {
+          photosByCategory[category as keyof typeof photosByCategory].push(photo);
+        } else {
+          photosByCategory.other.push(photo);
+        }
+      });
+
+      // Generate photo references for each category
+      const generatePhotoRef = (photos: Array<any>): string => {
+        if (photos.length === 0) return '';
+        
+        if (photos.length === 1) {
+          return ` (Photo ${photos[0].photoNumber})`;
+        } else {
+          const numbers = photos.map(p => p.photoNumber).sort((a, b) => a - b);
+          return ` (Photos ${numbers[0]}-${numbers[numbers.length - 1]})`;
+        }
+      };
+
+      // Add photo references to existing observation text
+      if (photosByCategory.building.length > 0) {
+        const buildingText = reportData.buildingObservations?.buildingSystemDescription || '';
+        photoReferences.building_system_description = buildingText + generatePhotoRef(photosByCategory.building);
+      }
+
+      if (photosByCategory.exterior.length > 0) {
+        const exteriorText = reportData.buildingObservations?.exteriorObservations || '';
+        photoReferences.exterior_observations = exteriorText + generatePhotoRef(photosByCategory.exterior);
+      }
+
+      if (photosByCategory.interior.length > 0) {
+        const interiorText = reportData.buildingObservations?.interiorObservations || '';
+        photoReferences.interior_observations = interiorText + generatePhotoRef(photosByCategory.interior);
+      }
+
+      // Generate appendix content with numbered photos
+      const appendixPhotos = photosWithNumbers.map(photo => 
+        `Photo ${photo.photoNumber}: ${photo.description || photo.originalFilename}`
+      ).join('\n');
+
+      photoReferences.site_photographs_appendix = appendixPhotos;
+      console.log('DEBUG: Generated appendix content:', appendixPhotos);
+      console.log('DEBUG: appendixPhotos length:', appendixPhotos.length);
+      console.log('DEBUG: Returning photo references with keys:', Object.keys(photoReferences));
+      console.log('DEBUG: Full photoReferences object:', JSON.stringify(photoReferences, null, 2));
+
+      return photoReferences;
+    } catch (error) {
+      console.error('Error processing photo references:', error);
+      return {};
+    }
   }
 
   /**
@@ -478,8 +624,8 @@ class GoogleDocsService {
   /**
    * Legacy method for backward compatibility
    */
-  public async generateFromTemplate(userId: string, reportData: ReportData, reportTitle: string, aiEnhanceText: boolean = false): Promise<string | null> {
-    return this.createProfessionalReport(userId, reportData, reportTitle, aiEnhanceText);
+  public async generateFromTemplate(userId: string, reportData: ReportData, reportTitle: string, reportId: string, aiEnhanceText: boolean = false): Promise<string | null> {
+    return this.createProfessionalReport(userId, reportData, reportTitle, reportId, aiEnhanceText);
   }
 
   public async isUserAuthenticated(userId: string): Promise<boolean> {

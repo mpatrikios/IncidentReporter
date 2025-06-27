@@ -377,7 +377,7 @@
       "content": [
         {
           "type": "text",
-          "content": "Appendix A: Site Photographs\nAppendix B: Weather Data\nAppendix C: Referenced Documentation\nAppendix D: Engineering Calculations (if applicable)",
+          "content": "Appendix A: Site Photographs\n\n{{site_photographs_appendix}}\n\nAppendix B: Weather Data\nAppendix C: Referenced Documentation\nAppendix D: Engineering Calculations (if applicable)",
           "style": {
             "spaceAfter": 12
           }
@@ -513,6 +513,10 @@
     "current_date": {
       "source": "dynamic",
       "default": "{{generated_date}}"
+    },
+    "site_photographs_appendix": {
+      "source": "dynamic",
+      "default": "No photographs were taken during the site visit."
     }
   }
 }
