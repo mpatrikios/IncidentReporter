@@ -63,8 +63,10 @@ export function DocumentGeneration({
       setProgress(0);
       setProgressMessage('Initializing...');
 
+      // Force server-side generation to use templates
       // Check if client-side generation is feasible
-      const canGenerateClientSide = await wordDocumentService.canGenerateClientSide(reportData.images);
+      const canGenerateClientSide = false; // Force server-side to use templates
+      // const canGenerateClientSide = await wordDocumentService.canGenerateClientSide(reportData.images);
 
       if (canGenerateClientSide) {
         // Client-side generation
@@ -119,6 +121,8 @@ export function DocumentGeneration({
         body: JSON.stringify({
           ...reportData,
           includePhotosInline,
+          templateId: 'MJSolutionsTemplate', // Use your custom template
+          aiEnhanceText: true, // Enable AI text enhancement
         }),
       });
 

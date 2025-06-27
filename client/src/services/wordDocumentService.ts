@@ -810,6 +810,10 @@ class WordDocumentService {
    * Check if client-side generation is feasible
    */
   async canGenerateClientSide(images: ReportImage[]): Promise<boolean> {
+    // TEMPORARY: Force server-side generation to use the template
+    // TODO: Update client-side generation to also use the efi-report-template.json
+    return false;
+    
     // Check browser capabilities
     if (!window.FileReader || !window.Blob) {
       return false;
