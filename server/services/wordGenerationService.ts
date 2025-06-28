@@ -1,8 +1,6 @@
 import { Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import axios from 'axios';
-import sharp from 'sharp';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { aiTextService } from './aiTextService';
@@ -203,7 +201,7 @@ class WordGenerationService {
    */
   private validateTemplate(templateBuffer: Buffer, templatePath: string): void {
     // Check ZIP signature (Word docs are ZIP files)
-    const zipSignature = templateBuffer.slice(0, 4);
+    const zipSignature = Buffer.from(templateBuffer.subarray(0, 4));
     const expectedSignature = Buffer.from([0x50, 0x4B, 0x03, 0x04]);
     
     if (!zipSignature.equals(expectedSignature)) {
@@ -385,6 +383,12 @@ class WordGenerationService {
     templateData.company_address = '7975 Stage Hills Boulevard, Suite 1\nMemphis, TN 38133\nTel:901-377-9984';
     templateData.company_file_prefix = 'Company';
 
+    // AERIAL VIEW - Now handled via download button in UI
+    templateData.aerial_view_image = '';
+    templateData.aerial_view_caption = '';
+    templateData.aerial_view_description = '';
+    templateData.aerial_view_coordinates = '';
+
     // IMAGE PLACEHOLDERS - Add if inline photos are requested
     if (includePhotosInline && images && images.length > 0) {
       console.log(`📸 Adding ${images.length} image placeholders...`);
@@ -529,7 +533,7 @@ class WordGenerationService {
     }
     
     // Check template ZIP signature
-    const templateSignature = templateBuffer.slice(0, 4);
+    const templateSignature = Buffer.from(templateBuffer.subarray(0, 4));
     const expectedZipSignature = Buffer.from([0x50, 0x4B, 0x03, 0x04]);
     if (!templateSignature.equals(expectedZipSignature)) {
       console.error('❌ Invalid template ZIP signature:', templateSignature);
@@ -556,28 +560,16 @@ class WordGenerationService {
       }
       console.log('✅ Essential DOCX files present');
       
-      // Create docxtemplater instance with enhanced error handling and custom delimiters
-      console.log('⚙️ Creating docxtemplater instance with custom delimiters...');
+      // Create docxtemplater instance
+      console.log('⚙️ Creating docxtemplater instance...');
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
         errorLogging: true,
-        // 🎯 FIX: Custom delimiters to prevent duplicate tag errors
         delimiters: { start: '{{', end: '}}' },
         nullGetter: function(part: any) {
           console.warn(`⚠️ Missing placeholder: ${part.value}`);
           return `[MISSING: ${part.value}]`;
-        },
-        // Enhanced error handling
-        parser: function(tag: string) {
-          return {
-            get: function(scope: any) {
-              if (tag === '.') {
-                return scope;
-              }
-              return scope[tag];
-            }
-          };
         }
       });
       
@@ -593,7 +585,7 @@ class WordGenerationService {
         console.log(`  ${key}: "${preview}"`);
       });
       
-      // Check for undefined/null values
+      // Check for undefined/null values and image buffers
       const problematicKeys = Object.keys(templateData).filter(key => 
         templateData[key] === undefined || templateData[key] === null
       );
@@ -601,14 +593,17 @@ class WordGenerationService {
         console.warn('⚠️ Found null/undefined values:', problematicKeys);
       }
       
-      // Set data and render with enhanced error catching
-      console.log('📊 Setting template data...');
-      doc.setData(templateData);
+      
+      // Set data and render with enhanced error catching (using correct API for v3.65.1)
+      console.log('📊 Setting template data and rendering...');
       
       // 🧨 DIAGNOSTIC 4: Enhanced render with try/catch and detailed template error logging
       console.log('🖼️ Rendering template with error catching...');
       try {
-        doc.render();
+        // For docxtemplater v3.65.1, use render() with data passed directly
+        console.log('🔧 Starting template render process...');
+        
+        doc.render(templateData);
         console.log('✅ Template rendered successfully');
       } catch (renderError: any) {
         console.error('❌ Docxtemplater render error:', renderError);
@@ -677,7 +672,7 @@ class WordGenerationService {
       }
       
       // Check output ZIP signature
-      const outputSignature = buffer.slice(0, 4);
+      const outputSignature = Buffer.from(buffer.subarray(0, 4));
       if (!outputSignature.equals(expectedZipSignature)) {
         console.error('❌ Generated document has invalid ZIP signature:', outputSignature);
         console.error('📋 Expected:', expectedZipSignature);

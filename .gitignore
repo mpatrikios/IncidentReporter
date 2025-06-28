@@ -77,4 +77,4 @@ vite.config.ts.*
 
 # Backup files
 *.bak
-*.backup
+*.backuptemp_images/
