@@ -422,7 +422,7 @@ export default function ReportWizardTurboTax() {
       case 2:
         return <AssignmentScopeStep {...stepProps} ref={stepRef} />;
       case 3:
-        return <BuildingAndSiteStepTurboTax {...stepProps} ref={stepRef} />;
+        return <BuildingAndSiteStepTurboTax {...stepProps} ref={stepRef} projectInfo={formData.projectInformation} />;
       case 4:
         return <ResearchStepTurboTax {...stepProps} ref={stepRef} formData={formData} steps={steps} />;
       case 5:

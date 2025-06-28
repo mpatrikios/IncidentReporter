@@ -20,6 +20,7 @@ import { noaaService } from "./services/noaaService";
 import { aiTextService } from "./services/aiTextService";
 import imageRoutes from "./routes/imageRoutes";
 import wordRoutes from "./routes/wordRoutes";
+import aerialRoutes from "./routes/aerialRoutes";
 
 // Utility function to validate ObjectId
 function isValidObjectId(id: string): boolean {
@@ -794,6 +795,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Word generation routes
   app.use(wordRoutes);
+  
+  // Register aerial imagery routes
+  app.use(aerialRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

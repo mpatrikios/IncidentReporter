@@ -13,12 +13,16 @@ import {
   Card,
   CardContent,
   Chip,
+  Button,
+  CircularProgress,
 } from '@mui/material';
 import {
   PhotoCamera,
   Business,
   Home,
   Description,
+  Satellite,
+  Download,
 } from '@mui/icons-material';
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { ImageUpload } from "@/components/ImageUpload";
@@ -45,14 +49,24 @@ interface BuildingAndSiteProps {
   initialData?: Partial<BuildingAndSite>;
   onSubmit?: (data: BuildingAndSite) => void;
   reportId?: string | null;
+  projectInfo?: {
+    insuredAddress?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    latitude?: number;
+    longitude?: number;
+  };
 }
 
 export const BuildingAndSiteStepTurboTax = forwardRef<StepRef<BuildingAndSite>, BuildingAndSiteProps>(
-  ({ initialData, onSubmit = () => {}, reportId }, ref) => {
+  ({ initialData, onSubmit = () => {}, reportId, projectInfo }, ref) => {
     const [buildingImages, setBuildingImages] = useState<UploadedImage[]>([]);
     const [exteriorImages, setExteriorImages] = useState<UploadedImage[]>([]);
     const [interiorImages, setInteriorImages] = useState<UploadedImage[]>([]);
     const [documentImages, setDocumentImages] = useState<UploadedImage[]>([]);
+    const [aerialLoading, setAerialLoading] = useState(false);
+    const [aerialError, setAerialError] = useState<string | null>(null);
 
     const form = useForm<BuildingAndSite>({
       resolver: zodResolver(buildingAndSiteSchema),
@@ -78,6 +92,76 @@ export const BuildingAndSiteStepTurboTax = forwardRef<StepRef<BuildingAndSite>, 
     }));
 
     const { isSaving } = useAutoSave(reportId, 3, watch());
+
+    // Function to get aerial view with specific zoom level
+    const getAerialView = async (zoomLevel: number = 20, zoomLabel: string = '') => {
+      if (!projectInfo) {
+        setAerialError('Project information not available');
+        return;
+      }
+
+      setAerialLoading(true);
+      setAerialError(null);
+
+      try {
+        // Build address from project info
+        const addressParts = [];
+        if (projectInfo.insuredAddress) addressParts.push(projectInfo.insuredAddress);
+        if (projectInfo.city) addressParts.push(projectInfo.city);
+        if (projectInfo.state) addressParts.push(projectInfo.state);
+        if (projectInfo.zipCode) addressParts.push(projectInfo.zipCode);
+
+        const requestData = {
+          address: projectInfo.latitude && projectInfo.longitude 
+            ? undefined 
+            : addressParts.join(', '),
+          latitude: projectInfo.latitude,
+          longitude: projectInfo.longitude,
+          zoom: zoomLevel,
+          mapType: 'satellite'
+        };
+
+        console.log('Requesting aerial image with:', requestData);
+
+        const response = await fetch('/api/aerial/image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        // Convert response to blob and download
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link with zoom level in filename
+        const link = document.createElement('a');
+        link.href = url;
+        const dateStr = new Date().toISOString().split('T')[0];
+        const filename = zoomLabel 
+          ? `aerial_view_${zoomLabel}_${dateStr}.jpg`
+          : `aerial_view_zoom${zoomLevel}_${dateStr}.jpg`;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the object URL
+        URL.revokeObjectURL(url);
+        
+      } catch (error: any) {
+        console.error('Error fetching aerial image:', error);
+        setAerialError(error.message || 'Failed to fetch aerial image');
+      } finally {
+        setAerialLoading(false);
+      }
+    };
 
     useEffect(() => {
       if (initialData && Object.keys(initialData).length > 0) {
@@ -169,6 +253,113 @@ export const BuildingAndSiteStepTurboTax = forwardRef<StepRef<BuildingAndSite>, 
                   onImagesChange={setBuildingImages}
                   maxImages={10}
                 />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Aerial View */}
+          <Card sx={{ bgcolor: '#E8F5E8', border: '1px solid #4CAF50' }}>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+                <Satellite sx={{ color: '#0070BA' }} />
+                <Typography variant="h6" fontWeight={500} sx={{ color: '#2C3E50' }}>
+                  Aerial View
+                </Typography>
+                <Chip label="Optional" size="small" variant="outlined" />
+              </Stack>
+              <Typography variant="body2" sx={{ color: '#5E6C84', mb: 3 }}>
+                Get high-resolution satellite views of the property from Google Maps. Choose your preferred zoom level:
+              </Typography>
+              
+              <Box sx={{ mb: 3, p: 2, bgcolor: '#F5F5F5', borderRadius: 1 }}>
+                <Typography variant="body2" sx={{ color: '#333', mb: 1 }}>
+                  <strong>📍 Close-Up View (Zoom 21):</strong> Focuses directly on the specific property address
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#333', mb: 1 }}>
+                  <strong>🏠 Property View (Zoom 19):</strong> Shows the property and immediate surroundings
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#333' }}>
+                  <strong>🏘️ Neighborhood (Zoom 17):</strong> Shows broader area including nearby streets
+                </Typography>
+              </Box>
+              
+              {aerialError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {aerialError}
+                </Alert>
+              )}
+              
+              {projectInfo && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+                    <strong>Property Address:</strong>
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#333' }}>
+                    {[
+                      projectInfo.insuredAddress,
+                      projectInfo.city,
+                      projectInfo.state,
+                      projectInfo.zipCode
+                    ].filter(Boolean).join(', ') || 'Address not specified'}
+                  </Typography>
+                  {projectInfo.latitude && projectInfo.longitude && (
+                    <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
+                      Coordinates: {projectInfo.latitude}, {projectInfo.longitude}
+                    </Typography>
+                  )}
+                </Box>
+              )}
+              
+              <Stack direction="row" spacing={2} flexWrap="wrap">
+                <Button
+                  variant="contained"
+                  onClick={() => getAerialView(21, 'close_up')}
+                  disabled={aerialLoading || !projectInfo}
+                  startIcon={aerialLoading ? <CircularProgress size={20} /> : <Download />}
+                  sx={{
+                    bgcolor: '#4CAF50',
+                    '&:hover': { bgcolor: '#45A049' },
+                    '&:disabled': { bgcolor: '#ccc' }
+                  }}
+                >
+                  {aerialLoading ? 'Getting...' : 'Close-Up View'}
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  onClick={() => getAerialView(19, 'property')}
+                  disabled={aerialLoading || !projectInfo}
+                  startIcon={aerialLoading ? <CircularProgress size={20} /> : <Download />}
+                  sx={{
+                    borderColor: '#4CAF50',
+                    color: '#4CAF50',
+                    '&:hover': { bgcolor: '#E8F5E8', borderColor: '#45A049' },
+                    '&:disabled': { borderColor: '#ccc', color: '#ccc' }
+                  }}
+                >
+                  {aerialLoading ? 'Getting...' : 'Property View'}
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  onClick={() => getAerialView(17, 'neighborhood')}
+                  disabled={aerialLoading || !projectInfo}
+                  startIcon={aerialLoading ? <CircularProgress size={20} /> : <Download />}
+                  sx={{
+                    borderColor: '#4CAF50',
+                    color: '#4CAF50',
+                    '&:hover': { bgcolor: '#E8F5E8', borderColor: '#45A049' },
+                    '&:disabled': { borderColor: '#ccc', color: '#ccc' }
+                  }}
+                >
+                  {aerialLoading ? 'Getting...' : 'Neighborhood'}
+                </Button>
+              </Stack>
+              
+              {!projectInfo && (
+                <Typography variant="body2" sx={{ color: '#666', mt: 2, fontStyle: 'italic' }}>
+                  Complete the Project Information step to enable aerial view download.
+                </Typography>
               )}
             </CardContent>
           </Card>
