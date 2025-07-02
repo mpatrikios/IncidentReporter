@@ -63,6 +63,12 @@ Based on the current template configuration (`server/config/efi-report-template.
 - `{photo_1_description}` - Description for first image
 - `{photo_2}`, `{photo_3}`, etc. - Additional images
 
+### Appendices (automatically populated when images are included)
+- `{appendix_images}` - Actual embedded images (array format for loop)
+- `{appendix_photos_list}` - Simple list of photo filenames and descriptions
+- `{appendix_photos_count}` - Total number of photos included
+- `{has_appendix_photos}` - "true" or "false" indicating if photos are present
+
 ## Example Template Structure
 
 ```
@@ -79,9 +85,15 @@ BUILDING DESCRIPTION
 CONCLUSIONS
 {conclusions}
 
-Images:
-{photo_1}
-Caption: {photo_1_caption}
+APPENDIX A - PHOTOGRAPHS
+
+This report includes {appendix_photos_count} photographs taken during the site inspection.
+
+{appendix_photos_list}
+
+{#appendix_images}
+{.}
+{/appendix_images}
 ```
 
 ## Using Templates

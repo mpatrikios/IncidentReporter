@@ -35,11 +35,18 @@ async function getNextUploadOrder(reportId: string): Promise<number> {
 // Upload image endpoint
 router.post('/api/reports/:reportId/images', requireAuth, upload.single('image'), async (req, res) => {
   try {
+    console.log('Image upload endpoint - Request received:', {
+      reportId: req.params.reportId,
+      hasFile: !!req.file,
+      body: req.body
+    });
+    
     const { reportId } = req.params;
     const imageFile = req.file;
     const userId = ((req.user as any) as any)._id.toString();
 
     if (!imageFile) {
+      console.error('Image upload endpoint - No file provided');
       return res.status(400).json({ error: 'No image file provided' });
     }
 
@@ -73,14 +80,17 @@ router.post('/api/reports/:reportId/images', requireAuth, upload.single('image')
     }
 
     // Upload to S3
+    console.log('Image upload endpoint - Uploading to S3...');
     const uploadResult = await s3Service.uploadImage(
       reportId,
       imageFile.buffer,
       imageFile.originalname,
       imageFile.mimetype
     );
+    console.log('Image upload endpoint - S3 upload complete:', uploadResult);
 
     // Save metadata to database
+    console.log('Image upload endpoint - Saving to database...');
     const imageRecord = await ReportImage.create({
       reportId: report._id,
       stepNumber,

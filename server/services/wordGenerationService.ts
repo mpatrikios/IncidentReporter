@@ -3,6 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
+import ImageModule from 'docxtemplater-image-module-free';
+import axios from 'axios';
+import sharp from 'sharp';
+import { CustomImageModule, ImagePlaceholder } from '../modules/customImageModule';
 import { aiTextService } from './aiTextService';
 
 interface ReportImage {
@@ -105,6 +109,23 @@ class WordGenerationService {
 
     try {
       console.log(`🚀 Starting Word generation with template: ${templateId}`);
+      console.log(`📸 Images: ${images?.length || 0}`);
+      console.log(`🔧 Include photos inline: ${includePhotosInline}`);
+      
+      // Debug image data
+      if (images && images.length > 0) {
+        console.log('🔍 Image data:');
+        images.forEach((img, i) => {
+          console.log(`  Image ${i + 1}:`, {
+            filename: img.originalFilename,
+            hasPublicUrl: !!img.publicUrl,
+            hasS3Url: !!img.s3Url,
+            fileSize: img.fileSize
+          });
+        });
+      } else {
+        console.log('🔍 No images provided for Word generation');
+      }
       
       // Load template file
       const templateBuffer = this.loadTemplate(templateId);
@@ -400,6 +421,95 @@ class WordGenerationService {
       }
     }
 
+    // APPENDICES - Add image list for appendices section
+    if (images && images.length > 0) {
+      console.log(`📎 Creating appendices with ${images.length} images...`);
+      
+      // Create formatted list of images for appendix (text only)
+      let appendixPhotosList = '';
+      
+      for (let i = 0; i < images.length; i++) {
+        const imageIndex = i + 1;
+        const image = images[i];
+        
+        // Simple list for table of contents style listing
+        appendixPhotosList += `\nPhoto ${imageIndex}: ${image.originalFilename}`;
+        if (image.description) {
+          appendixPhotosList += ` - ${this.sanitizeText(image.description)}`;
+        }
+      }
+      
+      // Process images for embedding - Use static placeholders up to 20 images
+      console.log(`📸 Processing images for photograph embedding - static placeholders (up to 20)...`);
+      const photographBuffers = await this.preparePhotographsForTemplate(images);
+      
+      // Prepare image placeholders for our custom image module
+      const imagePlaceholders: ImagePlaceholder[] = [];
+      const MAX_IMAGES = 20;
+      
+      for (let i = 1; i <= MAX_IMAGES; i++) {
+        if (i <= photographBuffers.length) {
+          // Image exists - prepare for custom image module
+          const photo = photographBuffers[i - 1];
+          const imageUrl = photo.originalUrl; // S3 URL
+          
+          imagePlaceholders.push({
+            tag: `photo_${i}`,
+            imageUrl: imageUrl,
+            buffer: photo.image // Already processed buffer
+          });
+          
+          // Set placeholder in template data (will be replaced by custom module)
+          templateData[`photo_${i}`] = `{{photo_${i}}}`; // Placeholder for custom module
+          console.log(`✅ Prepared photo_${i} for custom image module`);
+        } else {
+          // No image - empty string
+          templateData[`photo_${i}`] = '';
+          console.log(`🔄 Set photo_${i} as empty`);
+        }
+      }
+      
+      console.log(`📸 Prepared ${imagePlaceholders.length} images for custom image module`);
+      
+      // Store image placeholders for later processing
+      (templateData as any)._imagePlaceholders = imagePlaceholders;
+      
+      // Add helper fields for conditional sections
+      templateData.hasPhotographs = photographBuffers.length > 0;
+      templateData.photographCount = photographBuffers.length;
+      
+      console.log(`✅ Created static placeholders for ${photographBuffers.length} images (supports up to 20)`);
+      
+      // Debug: Log the actual photo placeholders created
+      for (let i = 1; i <= Math.min(photographBuffers.length, 5); i++) {
+        console.log(`📸 photo_${i}: ${templateData[`photo_${i}`] ? `Buffer(${templateData[`photo_${i}`].length})` : 'null'}`);
+        console.log(`📝 photo_${i}_exists: ${templateData[`photo_${i}_exists`]}`);
+        console.log(`📋 photo_${i}_caption: "${templateData[`photo_${i}_caption`]}"`);
+      }
+
+      // Note: Individual static placeholders are already created above
+      // No need for additional processing since we have photo_1, photo_2, etc.
+      console.log(`📸 Static placeholder creation complete`);
+      
+      // Add any remaining individual placeholder text for compatibility
+      for (let i = 0; i < Math.min(images.length, 20); i++) {
+        const imageIndex = i + 1;
+        const image = images[i];
+        
+        // Add text-based placeholders for any template that might need them
+        templateData[`image_${imageIndex}_text`] = `[Photo ${imageIndex}: ${image.originalFilename}]`;
+        templateData[`image_${imageIndex}_description_text`] = this.sanitizeText(image.description || '');
+      }
+      
+      templateData.appendix_photos_list = appendixPhotosList.trim();
+      templateData.appendix_photos_count = images.length.toString();
+      templateData.has_appendix_photos = 'true';
+    } else {
+      templateData.appendix_photos_list = 'No photos included.';
+      templateData.appendix_photos_count = '0';
+      templateData.has_appendix_photos = 'false';
+    }
+
     // VALIDATION - Ensure all required fields have valid, non-empty values
     const requiredFields = [
       'insured_name', 'claim_number', 'file_number', 'date_of_creation', 'insured_address',
@@ -408,7 +518,9 @@ class WordGenerationService {
       'structure_age', 'building_system_description', 'front_facing_direction', 'exterior_observations',
       'interior_observations', 'other_site_observations', 'weather_data_summary', 'corelogic_hail_summary',
       'corelogic_wind_summary', 'site_discussion_analysis', 'weather_discussion_analysis',
-      'weather_impact_analysis', 'recommendations_and_discussion', 'conclusions'
+      'weather_impact_analysis', 'recommendations_and_discussion', 'conclusions',
+      'appendix_photos_list', 'appendix_photos_count', 'has_appendix_photos',
+      'photographs', 'hasPhotographs', 'photographCount'
     ];
 
     // Define field-specific defaults for better context
@@ -439,10 +551,32 @@ class WordGenerationService {
       'weather_discussion_analysis': 'Weather analysis and discussion to be provided.',
       'weather_impact_analysis': 'Weather impact analysis to be provided.',
       'recommendations_and_discussion': 'Recommendations and discussion to be provided.',
-      'conclusions': 'Conclusions to be provided.'
+      'conclusions': 'Conclusions to be provided.',
+      'appendix_photos_list': 'No photos included.',
+      'appendix_photos_count': '0',
+      'has_appendix_photos': 'false',
+      'photographs': [],
+      'hasPhotographs': false,
+      'photographCount': '0'
     };
 
-    const missingFields = requiredFields.filter(field => !templateData[field] || templateData[field].trim() === '');
+    const missingFields = requiredFields.filter(field => {
+      const value = templateData[field];
+      // Skip validation for array fields like photographs
+      if (Array.isArray(value)) {
+        return false;
+      }
+      // Skip validation for boolean fields
+      if (typeof value === 'boolean') {
+        return false;
+      }
+      // For string fields, check if empty or just whitespace
+      if (typeof value === 'string') {
+        return !value || value.trim() === '';
+      }
+      // For other types, just check if falsy
+      return !value;
+    });
     if (missingFields.length > 0) {
       console.warn('⚠️ Missing or empty required fields:', missingFields);
       // Fill missing fields with contextually appropriate defaults
@@ -493,6 +627,137 @@ class WordGenerationService {
     }
     
     return processedText;
+  }
+
+  /**
+   * Create a 1x1 transparent PNG buffer for missing image placeholders
+   */
+  private getTransparentImageBuffer(): Buffer {
+    return Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4z8DwHwAFgwJ/lR9AwQAAAABJRU5ErkJggg==',
+      'base64'
+    );
+  }
+
+  /**
+   * Download and process images from S3 for embedding in Word document
+   */
+  private async preparePhotographsForTemplate(images: ReportImage[]): Promise<any[]> {
+    console.log(`📸 Starting photograph preparation for ${images.length} images...`);
+    
+    if (!images || images.length === 0) {
+      console.log('No images to prepare');
+      return [];
+    }
+
+    const processedPhotographs = [];
+
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      console.log(`Processing photograph ${i + 1}/${images.length}: ${image.originalFilename}`);
+
+      try {
+        const imageUrl = image.publicUrl || image.s3Url;
+        if (!imageUrl) {
+          console.warn(`❌ No URL available for image ${i + 1}: ${image.originalFilename}`);
+          continue;
+        }
+
+        // Download image using axios with proper timeout
+        console.log(`📥 Downloading image: ${imageUrl.substring(0, 100)}...`);
+        const response = await axios({
+          method: 'GET',
+          url: imageUrl,
+          responseType: 'arraybuffer',
+          timeout: 30000, // 30 second timeout
+          headers: {
+            'User-Agent': 'IncidentReporter DocxTemplater'
+          }
+        });
+
+        console.log(`✅ Downloaded image ${i + 1}: ${response.data.byteLength} bytes`);
+
+        // Process image with sharp for optimal sizing
+        const imageBuffer = Buffer.from(response.data);
+        const processedBuffer = await this.resizeImageForDocument(imageBuffer);
+        
+        console.log(`🖼️ Processed image ${i + 1}: ${processedBuffer.length} bytes`);
+
+        // Add to photographs array for template
+        processedPhotographs.push({
+          image: processedBuffer, // This is what docxtemplater-image-module-free expects
+          caption: image.description || image.originalFilename || `Photo ${i + 1}`,
+          filename: image.originalFilename,
+          originalUrl: imageUrl
+        });
+
+      } catch (error) {
+        console.error(`❌ Failed to process image ${i + 1}:`, error.message);
+        
+        // Add placeholder for failed images
+        processedPhotographs.push({
+          image: null,
+          caption: `${image.originalFilename || `Photo ${i + 1}`} - [Image failed to load: ${error.message}]`,
+          filename: image.originalFilename,
+          error: true
+        });
+      }
+    }
+
+    console.log(`🎯 Processed ${processedPhotographs.length} photographs (${processedPhotographs.filter(p => !p.error).length} successful)`);
+    return processedPhotographs;
+  }
+
+  /**
+   * Resize image maintaining aspect ratio for document embedding
+   */
+  private async resizeImageForDocument(imageBuffer: Buffer): Promise<Buffer> {
+    try {
+      const image = sharp(imageBuffer);
+      const metadata = await image.metadata();
+      
+      console.log(`Original dimensions: ${metadata.width}x${metadata.height}`);
+
+      // Calculate optimal dimensions (max 500px width, 400px height)
+      const maxWidth = 500;
+      const maxHeight = 400;
+      
+      let newWidth = metadata.width || maxWidth;
+      let newHeight = metadata.height || maxHeight;
+      
+      if (newWidth > maxWidth || newHeight > maxHeight) {
+        const aspectRatio = newWidth / newHeight;
+        
+        if (newWidth > maxWidth) {
+          newWidth = maxWidth;
+          newHeight = newWidth / aspectRatio;
+        }
+        
+        if (newHeight > maxHeight) {
+          newHeight = maxHeight;
+          newWidth = newHeight * aspectRatio;
+        }
+      }
+
+      newWidth = Math.round(newWidth);
+      newHeight = Math.round(newHeight);
+      
+      console.log(`Resizing to: ${newWidth}x${newHeight}`);
+
+      const resizedBuffer = await image
+        .resize(newWidth, newHeight, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+
+      return resizedBuffer;
+    } catch (error) {
+      console.error('Error resizing image:', error);
+      // Return original buffer if resize fails
+      return imageBuffer;
+    }
   }
 
   /**
@@ -560,16 +825,25 @@ class WordGenerationService {
       }
       console.log('✅ Essential DOCX files present');
       
-      // Create docxtemplater instance
-      console.log('⚙️ Creating docxtemplater instance...');
+      // Use our custom image module instead of the paid version
+      console.log(`🔧 Initializing custom image module for free image embedding...`);
+      const customImageModule = new CustomImageModule();
+      customImageModule.setDocxZip(zip);
+
+      // Create docxtemplater instance WITHOUT third-party image module
+      console.log('⚙️ Creating docxtemplater instance with custom image processing...');
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
         errorLogging: true,
         delimiters: { start: '{{', end: '}}' },
-        nullGetter: function(part: any) {
-          console.warn(`⚠️ Missing placeholder: ${part.value}`);
-          return `[MISSING: ${part.value}]`;
+        // No third-party image modules - we'll handle images ourselves
+        nullGetter: function(part: any, scope: any, context: any) {
+          console.log(`❓ nullGetter called for: ${part.value}`);
+          
+          // If placeholder is undefined, just don't show it at all
+          console.log(`🚫 Hiding undefined placeholder: ${part.value}`);
+          return '';
         }
       });
       
@@ -593,6 +867,21 @@ class WordGenerationService {
         console.warn('⚠️ Found null/undefined values:', problematicKeys);
       }
       
+      // Add specific logging for photographs array
+      if (templateData.photographs && Array.isArray(templateData.photographs)) {
+        console.log(`📸 Photographs array structure:`);
+        console.log(`  Length: ${templateData.photographs.length}`);
+        templateData.photographs.forEach((photo: any, index: number) => {
+          console.log(`  Photo ${index + 1}:`, {
+            hasImage: photo.image ? `Buffer(${photo.image.length})` : 'null',
+            caption: photo.caption?.substring(0, 30) || 'null',
+            filename: photo.filename || 'null'
+          });
+        });
+      } else {
+        console.log(`❌ No photographs array found in template data`);
+      }
+      
       
       // Set data and render with enhanced error catching (using correct API for v3.65.1)
       console.log('📊 Setting template data and rendering...');
@@ -605,6 +894,23 @@ class WordGenerationService {
         
         doc.render(templateData);
         console.log('✅ Template rendered successfully');
+
+        // Process images with our custom image module
+        const imagePlaceholders = (templateData as any)._imagePlaceholders as ImagePlaceholder[];
+        if (imagePlaceholders && imagePlaceholders.length > 0) {
+          console.log(`🖼️ Processing ${imagePlaceholders.length} images with custom image module...`);
+          
+          // Get the rendered document XML
+          const documentXml = zip.file('word/document.xml')?.asText() || '';
+          
+          // Process image placeholders
+          const processedXml = await customImageModule.processImagePlaceholders(documentXml, imagePlaceholders);
+          
+          // Update the document XML in the zip
+          zip.file('word/document.xml', processedXml);
+          
+          console.log('✅ Custom image processing completed');
+        }
       } catch (renderError: any) {
         console.error('❌ Docxtemplater render error:', renderError);
         console.error('🔍 Error details:', {
@@ -701,6 +1007,11 @@ class WordGenerationService {
       }
       
       console.log(`✅ Document generation complete: ${buffer.length} bytes`);
+      
+      // Cleanup custom image module
+      customImageModule.cleanup();
+      console.log('🧹 Custom image module cleaned up');
+      
       return buffer;
       
     } catch (error: any) {
@@ -710,6 +1021,12 @@ class WordGenerationService {
         stack: error.stack,
         name: error.name
       });
+      
+      // Cleanup on error too
+      if (customImageModule) {
+        customImageModule.cleanup();
+      }
+      
       throw new Error(`Document generation failed: ${error.message}`);
     }
   }

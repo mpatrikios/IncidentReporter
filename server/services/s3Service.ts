@@ -59,6 +59,14 @@ export class S3Service {
     publicUrl: string;
   }> {
     try {
+      console.log('S3 Upload - Starting upload:', {
+        reportId,
+        filename: originalFilename,
+        mimeType,
+        bufferSize: buffer.length,
+        bucket: this.bucketName
+      });
+      
       const s3Key = this.generateUniqueFilename(reportId, originalFilename);
       
       const uploadCommand = new PutObjectCommand({
@@ -77,6 +85,7 @@ export class S3Service {
       });
 
       await this.s3Client.send(uploadCommand);
+      console.log('S3 Upload - Successfully uploaded to S3:', s3Key);
 
       // Generate URLs
       const s3Url = `https://${this.bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
@@ -90,6 +99,12 @@ export class S3Service {
         console.warn('Could not generate presigned URL, using direct S3 URL:', error);
         publicUrl = s3Url;
       }
+
+      console.log('S3 Upload - Returning URLs:', {
+        s3Key,
+        s3Url,
+        publicUrl
+      });
 
       return {
         s3Key,
